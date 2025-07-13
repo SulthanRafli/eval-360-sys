@@ -1,0 +1,102 @@
+<div class="space-y-6">
+  <div class="flex justify-between items-center">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Daftar Karyawan</h1>
+      <p class="mt-1 text-sm text-gray-600">
+        Kelola data karyawan di perusahaan Anda.
+      </p>
+    </div>
+    <button
+      (click)="onAddEmployee()"
+      class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    >
+      <svg
+        class="w-5 h-5 mr-2 -ml-1"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="M12 4.5v15m7.5-7.5h-15"
+        />
+      </svg>
+      Tambah Karyawan
+    </button>
+  </div>
+
+  <app-employee-filters
+    [filterForm]="filterForm"
+    [filters]="filtersSignal"
+    [positions]="positions()"
+    [levels]="levels()"
+    [supervisors]="supervisors()"
+    (clearFilters)="onClearFilters()"
+  ></app-employee-filters>
+
+  <!-- Responsive Grid for Employee Cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    @for (employee of filteredEmployees(); track employee.id) {
+    <app-employee-card
+      [employee]="employee"
+      [supervisorName]="
+        employee.supervisor
+          ? employeesMap().get(employee.supervisor)?.name
+          : undefined
+      "
+      [teammateNames]="getNamesByIds(employee.teammates)"
+      [subordinateNames]="getNamesByIds(employee.subordinates)"
+      (view)="onViewEmployee($event)"
+      (edit)="onEditEmployee($event)"
+      (delete)="onDeleteEmployee($event)"
+    ></app-employee-card>
+    } @empty {
+    <div
+      class="md:col-span-2 xl:col-span-3 bg-white rounded-lg shadow-md p-12 text-center text-gray-500 flex flex-col items-center"
+    >
+      <svg
+        class="w-12 h-12 text-gray-300 mb-4"
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+        />
+      </svg>
+      <h3 class="text-lg font-semibold text-gray-700">
+        Tidak Ada Karyawan Ditemukan
+      </h3>
+      <p class="mt-1 text-sm text-gray-500">
+        Coba ubah atau hapus filter Anda untuk melihat lebih banyak hasil.
+      </p>
+    </div>
+    }
+  </div>
+</div>
+
+<!-- Modals -->
+<app-delete-confirm-modal
+  [isOpen]="isDeleteModalOpen()"
+  [employee]="employeeToDelete()"
+  (closeModal)="onDeleteModalClose()"
+  (confirm)="onDeleteModalConfirm()"
+>
+</app-delete-confirm-modal>
+
+<app-employee-form-modal
+  [isOpen]="isFormModalOpen()"
+  [mode]="formMode()"
+  [employee]="selectedEmployee()"
+  [allEmployees]="allEmployees()"
+  (closeModal)="onFormModalClose()"
+  (save)="onSaveEmployee($event)"
+>
+</app-employee-form-modal>

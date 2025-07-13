@@ -1,0 +1,191 @@
+<div class="h-screen flex overflow-hidden bg-gray-50">
+  <!-- Mobile overlay, shown when sidebar is open -->
+  @if(isSidebarOpen()) {
+  <div class="fixed inset-0 flex z-40 md:hidden" (click)="toggleSidebar()">
+    <div class="fixed inset-0 bg-gray-600 bg-opacity-75"></div>
+  </div>
+  }
+
+  <!-- Sidebar -->
+  <aside
+    class="fixed inset-y-0 left-0 flex-shrink-0 w-64 bg-white border-r border-gray-200 flex flex-col z-50 transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0"
+    [ngClass]="{
+      'translate-x-0': isSidebarOpen(),
+      '-translate-x-full': !isSidebarOpen()
+    }"
+  >
+    <div class="flex flex-col flex-grow pt-5 overflow-y-auto">
+      <div class="flex items-center flex-shrink-0 px-4">
+        <div class="flex items-center">
+          <div
+            class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"
+          >
+            <svg
+              class="w-5 h-5 text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+              />
+            </svg>
+          </div>
+          <div class="ml-3">
+            <p class="text-lg font-semibold text-gray-900">EvalSys</p>
+            <p class="text-xs text-gray-500">360° Evaluation</p>
+          </div>
+        </div>
+      </div>
+      <div class="mt-8 flex-grow flex flex-col">
+        <nav class="flex-1 px-2 space-y-1">
+          @for (item of navigation; track item.name) {
+          <a
+            [routerLink]="item.href"
+            routerLinkActive="active-link"
+            #rla="routerLinkActive"
+            (click)="isSidebarOpen.set(false)"
+            class="group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+            [ngClass]="{
+              'bg-blue-50 border-r-2 border-blue-600 text-blue-700':
+                rla.isActive
+            }"
+          >
+            <span
+              class="mr-3 flex-shrink-0 h-5 w-5 transition-colors duration-200"
+              [ngClass]="
+                rla.isActive
+                  ? 'text-blue-600'
+                  : 'text-gray-400 group-hover:text-gray-500'
+              "
+            ></span>
+            {{ item.name }}
+          </a>
+          }
+        </nav>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="flex flex-col w-0 flex-1 overflow-hidden">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+      <div class="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+          <div class="flex items-center">
+            <button
+              type="button"
+              class="md:hidden -ml-1 p-2 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+              (click)="toggleSidebar()"
+            >
+              <svg
+                class="h-6 w-6"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                />
+              </svg>
+            </button>
+            <div class="ml-4 md:ml-0">
+              <h1 class="text-lg md:text-xl font-semibold text-gray-900">
+                Sistem Evaluasi Karyawan 360°
+              </h1>
+            </div>
+          </div>
+
+          @if(authService.currentUser(); as user) {
+          <div class="flex items-center space-x-2 md:space-x-4">
+            <button
+              class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+            >
+              <svg
+                class="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
+                />
+              </svg>
+              <span
+                class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"
+              ></span>
+            </button>
+
+            <div class="flex items-center space-x-3">
+              <div
+                class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center"
+              >
+                <svg
+                  class="h-5 w-5 text-gray-600"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
+                  />
+                </svg>
+              </div>
+              <div class="hidden md:block">
+                <p class="text-sm font-medium text-gray-700">{{ user.name }}</p>
+                <p class="text-xs text-gray-500 capitalize">{{ user.role }}</p>
+              </div>
+              <button
+                (click)="logout()"
+                class="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
+                title="Logout"
+              >
+                <svg
+                  class="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+          }
+        </div>
+      </div>
+    </header>
+    <main class="flex-1 relative overflow-y-auto focus:outline-none">
+      <div class="py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <router-outlet></router-outlet>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
