@@ -7,14 +7,18 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Employee } from '../../models/app.types';
+import { LucideAngularModule, TriangleAlert, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-delete-confirm-modal',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './delete-confirm-modal.component.html',
 })
 export class DeleteConfirmModalComponent {
+  readonly TriangleAlert = TriangleAlert;
+  readonly X = X;
+
   @Input() employee: Employee | null = null;
   @Input() isOpen: boolean = false;
   @Output() closeModal = new EventEmitter<void>();

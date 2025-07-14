@@ -8,14 +8,19 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { Funnel, LucideAngularModule, Search, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-employee-filters',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
   templateUrl: './employee-filters.component.html',
 })
 export class EmployeeFiltersComponent {
+  readonly Funnel = Funnel;
+  readonly X = X;
+  readonly Search = Search;
+
   @Input({ required: true }) filterForm!: FormGroup;
   @Input({ required: true }) filters!: Signal<any>;
   @Input() positions: string[] = [];

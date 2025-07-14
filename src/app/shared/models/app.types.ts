@@ -46,10 +46,11 @@ export interface Evaluation {
   id: string;
   evaluatorId: string;
   employeeId: string;
-  type: 'supervisor' | 'teammate' | 'self';
+  type: 'supervisor' | 'teammate' | 'self' | 'subordinate' | 'peer';
   period: string;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'in-progress';
   responses: EvaluationResponse[];
+  comments?: string;
   submittedAt?: Date;
 }
 

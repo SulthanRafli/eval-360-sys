@@ -1,1 +1,703 @@
-<p>evaluations works!</p>
+<!-- Main container with conditional views -->
+<div class="space-y-6">
+  <!-- Evaluation Form View -->
+  <ng-container *ngIf="showEvaluationForm && currentEvaluation">
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900">
+            Evaluasi 360° - {{ getEmployeeName(currentEvaluation.employeeId) }}
+          </h2>
+          <p class="text-sm text-gray-500 flex items-center mt-1">
+            <!-- Icon placeholder -->
+            Penilaian sebagai
+            {{ getTypeConfig(currentEvaluation.type)?.label }} • Periode
+            {{ currentEvaluation.period }}
+          </p>
+        </div>
+        <button
+          (click)="showEvaluationForm = false"
+          class="text-gray-400 hover:text-gray-600 cursor-pointer"
+        >
+          <!-- Icon: X -->
+        </button>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="bg-white shadow rounded-lg p-4">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700"
+            >Progress Evaluasi</span
+          >
+          <span class="text-sm text-gray-500"
+            >{{ getAnsweredQuestionsCount() }}/{{
+              getTotalQuestionsCount()
+            }}
+            pertanyaan</span
+          >
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div
+            class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            [style.width.%]="
+              (getAnsweredQuestionsCount() / getTotalQuestionsCount()) * 100
+            "
+          ></div>
+        </div>
+      </div>
+
+      <!-- Evaluation Questions -->
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h3 class="text-lg font-medium text-gray-900">Formulir Evaluasi</h3>
+        </div>
+        <div class="p-6 space-y-8">
+          <div *ngFor="let criteria of allEvaluationCriteria" class="space-y-4">
+            <div class="border-l-4 border-blue-500 pl-4">
+              <h4 class="text-lg font-semibold text-gray-900">
+                {{ criteria.code }}. {{ criteria.name }}
+              </h4>
+            </div>
+            <div class="space-y-6">
+              <div
+                *ngFor="let question of criteria.questions"
+                class="bg-gray-50 p-4 rounded-lg"
+              >
+                <p class="text-sm font-medium text-gray-900 mb-3">
+                  {{ question.code }}. {{ question.text }}
+                </p>
+                <!-- Rating Scale -->
+                <div class="mb-4">
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      *ngFor="let score of [1, 2, 3, 4, 5]"
+                      (click)="
+                        handleResponseChange(
+                          question.id,
+                          score,
+                          currentEvaluation.responses[question.id].comment || ''
+                        )
+                      "
+                      [ngClass]="{
+                        'bg-blue-600 text-white border-blue-600':
+                          currentEvaluation.responses[question.id].score ===
+                          score,
+                        'bg-white text-gray-700 border-gray-300 hover:bg-gray-50':
+                          currentEvaluation.responses[question.id].score !==
+                          score
+                      }"
+                      class="px-3 py-2 text-sm rounded-md border transition-all duration-200 cursor-pointer"
+                    >
+                      {{ score }} - {{ allScaleLabels[score].split(" - ")[1] }}
+                    </button>
+                  </div>
+                </div>
+                <!-- Comment -->
+                <div>
+                  <label class="block text-xs font-medium text-gray-700 mb-1"
+                    >Komentar (Opsional)</label
+                  >
+                  <textarea
+                    [ngModel]="
+                      currentEvaluation.responses[question.id].comment || ''
+                    "
+                    (ngModelChange)="
+                      handleResponseChange(
+                        question.id,
+                        currentEvaluation.responses[question.id].score || 0,
+                        $event
+                      )
+                    "
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none text-sm"
+                    rows="2"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- General Comment & Actions -->
+          <div class="border-t border-gray-300 pt-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2"
+              >Komentar Umum (Opsional)</label
+            >
+            <textarea
+              [(ngModel)]="currentEvaluation.generalComment"
+              class="w-full px-3 py-2 border border-gray-300 focus:outline-none rounded-md"
+              rows="4"
+            ></textarea>
+          </div>
+          <div class="flex justify-between pt-6 border-t border-gray-300">
+            <button
+              (click)="saveDraft()"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
+            >
+              Simpan Draft
+            </button>
+            <div class="flex space-x-3">
+              <button
+                (click)="showEvaluationForm = false"
+                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Batal
+              </button>
+              <button
+                (click)="submitEvaluation()"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 cursor-pointer"
+              >
+                Kirim Evaluasi
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Evaluation Detail Modal -->
+  <ng-container *ngIf="showEvaluationDetail && selectedEvaluationDetail">
+    <div
+      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      (click)="showEvaluationDetail = false"
+      (keydown.escape)="showEvaluationDetail = false"
+    >
+      <div
+        class="relative mx-auto p-5 w-full max-w-4xl shadow-lg rounded-md bg-white mt-10 mb-10"
+      >
+        <div
+          class="flex items-center justify-between pb-4 border-b border-gray-400"
+        >
+          <div>
+            <h3 class="text-lg font-medium text-gray-900">Detail Evaluasi</h3>
+            <p class="text-sm text-gray-500 mt-1">
+              {{ getEmployeeName(selectedEvaluationDetail.employeeId) }} •
+              {{ getTypeConfig(selectedEvaluationDetail.type)?.label }} •
+              {{ selectedEvaluationDetail.period }}
+            </p>
+          </div>
+          <button
+            (click)="showEvaluationDetail = false"
+            class="text-gray-400 hover:text-gray-600 cursor-pointer"
+          >
+            <!-- Icon: X -->
+          </button>
+        </div>
+        <div class="mt-6 space-y-6 max-h-[55vh] overflow-y-auto pr-2">
+          <!-- Evaluation Info -->
+          <!-- ... (detail info here) ... -->
+          <!-- Responses -->
+          <div
+            *ngFor="let criteria of allEvaluationCriteria"
+            class="border border-gray-200 rounded-lg p-4"
+          >
+            <div class="flex items-center justify-between mb-4">
+              <h5 class="font-medium text-gray-900">{{ criteria.name }}</h5>
+              <div class="text-right">
+                <div class="text-lg font-bold text-blue-600">
+                  {{ getAverageScoreForCriteria(criteria.id).toFixed(1) }}
+                </div>
+                <div class="text-xs text-gray-500">Rata-rata</div>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <div
+                *ngFor="let question of criteria.questions"
+                class="bg-gray-50 p-3 rounded"
+              >
+                <ng-container
+                  *ngIf="getEvaluationForDetail(question.id) as response"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-900"
+                      >{{ question.code }}. {{ question.text }}</span
+                    >
+                    <span class="text-sm font-bold text-blue-600"
+                      >{{ response.score }} -
+                      {{ allScaleLabels[response.score].split(" - ")[1] }}</span
+                    >
+                  </div>
+                  <p
+                    *ngIf="response.comment"
+                    class="text-sm text-gray-600 italic"
+                  >
+                    "{{ response.comment }}"
+                  </p>
+                </ng-container>
+              </div>
+            </div>
+          </div>
+          <!-- General Comment -->
+          <div *ngIf="selectedEvaluationDetail.comments">
+            <h4 class="text-md font-medium text-gray-900 mb-2">
+              Komentar Umum
+            </h4>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <p class="text-sm text-gray-700">
+                {{ selectedEvaluationDetail.comments }}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end">
+          <button
+            (click)="showEvaluationDetail = false"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700 cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Main Dashboard View -->
+  <ng-container *ngIf="!showEvaluationForm && !showEvaluationDetail">
+    <!-- Header -->
+    <div class="md:flex md:items-center md:justify-between">
+      <div class="flex-1 min-w-0">
+        <h2
+          class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate"
+        >
+          Evaluasi 360 Derajat
+        </h2>
+        <p class="mt-1 text-sm text-gray-500">
+          Kelola evaluasi dari berbagai perspektif
+        </p>
+      </div>
+      <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
+        <select
+          [(ngModel)]="selectedPeriod"
+          (ngModelChange)="onPeriodChange()"
+          class="block px-3 py-2 border border-gray-300 rounded-md text-sm"
+        >
+          <option *ngFor="let period of periods" [value]="period">
+            {{ period }}
+          </option>
+        </select>
+        <div class="flex rounded-md shadow-sm">
+          <button
+            (click)="viewMode = 'matrix'"
+            [ngClass]="{
+              'bg-blue-50 text-blue-700': viewMode === 'matrix',
+              'bg-white text-gray-700': viewMode !== 'matrix'
+            }"
+            class="px-4 py-2 text-sm font-medium border border-gray-300 rounded-l-md cursor-pointer"
+          >
+            Matriks
+          </button>
+          <button
+            (click)="viewMode = 'list'"
+            [ngClass]="{
+              'bg-blue-50 text-blue-700': viewMode === 'list',
+              'bg-white text-gray-700': viewMode !== 'list'
+            }"
+            class="px-4 py-2 text-sm font-medium border border-gray-300 border-l-0 cursor-pointer"
+          >
+            Daftar
+          </button>
+          <button
+            (click)="viewMode = 'stats'"
+            [ngClass]="{
+              'bg-blue-50 text-blue-700': viewMode === 'stats',
+              'bg-white text-gray-700': viewMode !== 'stats'
+            }"
+            class="px-4 py-2 text-sm font-medium border border-gray-300 rounded-r-md border-l-0 cursor-pointer"
+          >
+            Statistik
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div
+        *ngFor="let type of evaluationTypes"
+        class="bg-white rounded-lg shadow p-6"
+      >
+        <div class="flex items-center">
+          <div
+            class="flex-shrink-0 p-3 rounded-lg"
+            [ngClass]="'bg-' + type.color + '-50'"
+          >
+            <lucide-angular
+              [img]="type.icon"
+              [ngClass]="'h-6 w-6 text-' + type.color + '-600'"
+            ></lucide-angular>
+          </div>
+          <div class="ml-5 w-0 flex-1">
+            <dl>
+              <dt class="text-sm font-medium text-gray-500 truncate">
+                {{ type.label }}
+              </dt>
+              <dd class="text-2xl font-semibold text-gray-900">
+                {{ getCompletedCount(type.value) }}/{{
+                  getTotalCount(type.value)
+                }}
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Start Evaluation -->
+    <div class="bg-white shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">
+        Mulai Evaluasi Baru
+      </h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <select
+          [(ngModel)]="selectedEmployee"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Pilih karyawan</option>
+          <option *ngFor="let emp of allEmployees" [value]="emp.id">
+            {{ emp.name }}
+          </option>
+        </select>
+        <select
+          [(ngModel)]="selectedType"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Pilih jenis</option>
+          <option *ngFor="let type of evaluationTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
+        <button
+          (click)="startEvaluation(selectedEmployee, selectedType)"
+          [disabled]="!selectedEmployee || !selectedType"
+          class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+        >
+          Mulai Evaluasi
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters (for List and Stats view) -->
+    <div *ngIf="viewMode === 'list'" class="bg-white shadow rounded-lg p-6">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <input
+          type="text"
+          [(ngModel)]="filters.search"
+          (ngModelChange)="applyFilters()"
+          placeholder="Cari..."
+          class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md"
+        />
+        <select
+          [(ngModel)]="filters.status"
+          (ngModelChange)="applyFilters()"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Semua Status</option>
+          <option value="completed">Selesai</option>
+          <option value="in-progress">Berlangsung</option>
+          <option value="pending">Menunggu</option>
+        </select>
+        <select
+          [(ngModel)]="filters.type"
+          (ngModelChange)="applyFilters()"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md"
+        >
+          <option value="">Semua Jenis</option>
+          <option *ngFor="let type of evaluationTypes" [value]="type.value">
+            {{ type.label }}
+          </option>
+        </select>
+        <button
+          (click)="clearFilters()"
+          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium cursor-pointer"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Matrix View -->
+    <div
+      *ngIf="viewMode === 'matrix'"
+      class="bg-white shadow rounded-lg overflow-x-auto"
+    >
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+            >
+              Karyawan
+            </th>
+            <th
+              *ngFor="let type of evaluationTypes"
+              class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+            >
+              {{ type.label }}
+            </th>
+            <th
+              class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+            >
+              Progress
+            </th>
+            <th
+              class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+            >
+              Aksi
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <tr *ngFor="let employee of allEmployees" class="hover:bg-gray-50">
+            <td class="px-6 py-4 whitespace-nowrap">
+              <div class="flex items-center">
+                <div
+                  class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-white font-medium text-lg">{{
+                    initials(employee.name)
+                  }}</span>
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm font-medium text-gray-900">
+                    {{ employee.name }}
+                  </p>
+                  <p class="text-sm text-gray-500">{{ employee.position }}</p>
+                </div>
+              </div>
+            </td>
+            <td
+              *ngFor="let type of evaluationTypes"
+              class="px-6 py-4 whitespace-nowrap"
+            >
+              <ng-container
+                [ngSwitch]="getEvaluationStatusForType(employee.id, type.value)"
+              >
+                <div class="flex justify-center" *ngSwitchCase="'completed'">
+                  <lucide-angular
+                    [img]="CircleCheck"
+                    class="w-6 h-6 text-green-400"
+                  ></lucide-angular>
+                </div>
+                <div class="flex justify-center" *ngSwitchCase="'in-progress'">
+                  <lucide-angular
+                    [img]="ClockArrowUp"
+                    class="w-6 h-6 text-yellow-400"
+                  ></lucide-angular>
+                </div>
+                <div class="flex justify-center" *ngSwitchCase="'pending'">
+                  <lucide-angular
+                    [img]="Clock4"
+                    class="w-6 h-6 text-gray-400"
+                  ></lucide-angular>
+                </div>
+                <div class="flex justify-center" *ngSwitchCase="'none'">
+                  <lucide-angular
+                    [img]="CircleMinus"
+                    class="w-6 h-6 text-gray-400"
+                  ></lucide-angular>
+                </div>
+              </ng-container>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center">
+              <div class="w-16 bg-gray-200 rounded-full h-2 mx-auto">
+                <div
+                  class="h-2 rounded-full bg-green-600"
+                  [style.width.%]="getEvaluationProgress(employee.id)"
+                ></div>
+              </div>
+            </td>
+            <td class="px-6 py-4 whitespace-nowrap text-center">
+              <button
+                (click)="viewEvaluationDetail(employee.id)"
+                class="text-blue-600 font-medium hover:text-blue-900 cursor-pointer"
+              >
+                Detail
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- List View -->
+    <div
+      *ngIf="viewMode === 'list'"
+      class="bg-white shadow overflow-hidden sm:rounded-md"
+    >
+      <ul class="divide-y divide-gray-200">
+        <li
+          *ngFor="let evaluation of filteredEvaluations"
+          class="px-6 py-4 hover:bg-gray-50"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <div
+                class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
+              >
+                <span class="text-white font-medium text-lg">{{
+                  initials(getEmployeeName(evaluation.employeeId))
+                }}</span>
+              </div>
+              <div class="ml-4">
+                <p class="text-sm font-medium text-gray-900">
+                  {{ getEmployeeName(evaluation.employeeId) }}
+                </p>
+                <p class="text-sm text-gray-500">
+                  Evaluator: {{ getEmployeeName(evaluation.evaluatorId) }}
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4">
+              <span
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                [ngClass]="getStatusClass(evaluation.status)"
+                >{{ getStatusLabel(evaluation.status) }}</span
+              >
+              <div class="flex space-x-2">
+                <button
+                  (click)="viewEvaluationDetail(evaluation.employeeId)"
+                  class="cursor-pointer"
+                  title="Lihat Detail"
+                >
+                  <lucide-angular
+                    [img]="Eye"
+                    class="w-5 h-5 text-blue-600"
+                  ></lucide-angular>
+                </button>
+                <button
+                  *ngIf="evaluation.status !== 'completed'"
+                  class="cursor-pointer"
+                  (click)="
+                    startEvaluation(evaluation.employeeId, evaluation.type)
+                  "
+                  title="Edit"
+                >
+                  <lucide-angular
+                    [img]="SquarePen"
+                    class="w-5 h-5 text-yellow-600"
+                  ></lucide-angular>
+                </button>
+                <button
+                  (click)="deleteEvaluation(evaluation.id)"
+                  title="Hapus"
+                  class="cursor-pointer"
+                >
+                  <lucide-angular
+                    [img]="Trash2"
+                    class="w-5 h-5 text-red-600"
+                  ></lucide-angular>
+                </button>
+              </div>
+            </div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Stats View -->
+    <div
+      *ngIf="viewMode === 'stats'"
+      class="grid grid-cols-1 lg:grid-cols-2 gap-6"
+    >
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            Statistik Penyelesaian
+          </h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Total Evaluasi</span>
+              <span class="text-lg font-bold text-gray-900">{{
+                stats.total
+              }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Selesai</span>
+              <span class="text-lg font-bold text-green-600">{{
+                stats.completed
+              }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Sedang Berlangsung</span>
+              <span class="text-lg font-bold text-yellow-600">{{
+                stats.inProgress
+              }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-gray-600">Menunggu</span>
+              <span class="text-lg font-bold text-gray-600">{{
+                stats.pending
+              }}</span>
+            </div>
+            <div class="pt-4 border-t border-gray-200">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium text-gray-900"
+                  >Tingkat Penyelesaian</span
+                >
+                <span class="text-xl font-bold text-blue-600"
+                  >{{ stats.completionRate.toFixed(1) }}%</span
+                >
+              </div>
+              <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div
+                  class="bg-blue-600 h-2 rounded-full"
+                  [ngStyle]="{ width: `${stats.completionRate}%` }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">
+            Insight Performa
+          </h3>
+          <div class="space-y-4">
+            <div class="flex items-center p-3 bg-green-50 rounded-lg">
+              <lucide-angular
+                [img]="TrendingUp"
+                class="w-8 h-8 text-green-600 mr-3"
+              ></lucide-angular>
+              <div>
+                <p class="text-sm font-medium text-gray-900">
+                  Evaluasi Terbanyak
+                </p>
+                <p class="text-xs text-gray-500">
+                  Self evaluation:
+                  {{ getCompletedSelfEvaluationsCount() }}
+                  selesai
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center p-3 bg-blue-50 rounded-lg">
+              <lucide-angular
+                [img]="Award"
+                class="w-8 h-8 text-blue-600 mr-3"
+              ></lucide-angular>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Rata-rata Skor</p>
+                <p class="text-xs text-gray-500">
+                  4.2/5.0 dari evaluasi yang selesai
+                </p>
+              </div>
+            </div>
+
+            <div class="flex items-center p-3 bg-purple-50 rounded-lg">
+              <lucide-angular
+                [img]="Target"
+                class="w-8 h-8 text-purple-600 mr-3"
+              ></lucide-angular>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Target Periode</p>
+                <p class="text-xs text-gray-500">
+                  {{ stats.completionRate.toFixed(1) }}% dari target 100%
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </ng-container>
+</div>

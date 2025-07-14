@@ -1,33 +1,21 @@
 @if (isOpen && employee) {
 <div
-  class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+  (click)="onClose()"
+  (keydown.escape)="onClose()"
 >
-  <div
-    class="relative top-0 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
-  >
-    <div class="flex items-center justify-between pb-4 border-b">
+  <div class="relative top-0 mx-auto p-5 w-96 shadow-lg rounded-md bg-white">
+    <div
+      class="flex items-center justify-between pb-4 border-b border-gray-400"
+    >
       <div class="flex items-center">
         <div
           class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100"
         >
-          <svg
+          <lucide-angular
+            [img]="TriangleAlert"
             class="h-6 w-6 text-red-600"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
-            />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-          </svg>
+          ></lucide-angular>
         </div>
         <div class="ml-4">
           <h3 class="text-lg font-medium text-gray-900">Konfirmasi Hapus</h3>
@@ -35,23 +23,9 @@
       </div>
       <button
         (click)="onClose()"
-        class="text-gray-400 hover:text-gray-600 transition-colors"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
       >
-        <svg
-          class="w-6 h-6"
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
+        <lucide-angular [img]="X" class="w-6 h-6"></lucide-angular>
       </button>
     </div>
     <div class="mt-4">
@@ -75,24 +49,10 @@
       <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg
+            <lucide-angular
+              [img]="TriangleAlert"
               class="h-5 w-5 text-yellow-400"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path
-                d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
-              />
-              <path d="M12 9v4" />
-              <path d="M12 17h.01" />
-            </svg>
+            ></lucide-angular>
           </div>
           <div class="ml-3">
             <h3 class="text-sm font-medium text-yellow-800">Peringatan</h3>
@@ -108,16 +68,16 @@
         </div>
       </div>
     </div>
-    <div class="flex justify-end space-x-4 pt-4 border-t">
+    <div class="flex justify-end space-x-4 pt-4 border-t border-gray-400">
       <button
         (click)="onClose()"
-        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
       >
         Batal
       </button>
       <button
         (click)="onConfirm()"
-        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer"
       >
         Hapus Karyawan
       </button>

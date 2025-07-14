@@ -9,6 +9,7 @@ import { EmployeeFiltersComponent } from './components/employee-filters/employee
 import { EmployeeFormModalComponent } from './components/employee-form-modal/employee-form-modal.component';
 import { Employee } from '../../shared/models/app.types';
 import { mockEmployees } from '../../shared/data/mock-data';
+import { Plus, LucideAngularModule, Funnel, Search } from 'lucide-angular';
 
 @Component({
   selector: 'app-employees',
@@ -20,10 +21,15 @@ import { mockEmployees } from '../../shared/data/mock-data';
     EmployeeCardComponent,
     EmployeeFiltersComponent,
     EmployeeFormModalComponent,
+    LucideAngularModule,
   ],
   templateUrl: './employees.component.html',
 })
 export class EmployeesComponent {
+  readonly Plus = Plus;
+  readonly Funnel = Funnel;
+  readonly Search = Search;
+
   private fb = inject(FormBuilder);
 
   // --- STATE MANAGEMENT ---

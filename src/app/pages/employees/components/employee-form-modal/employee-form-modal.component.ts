@@ -18,14 +18,18 @@ import {
   FormControl,
 } from '@angular/forms';
 import { Employee } from '../../../../shared/models/app.types';
+import { Info, LucideAngularModule, X } from 'lucide-angular';
 
 @Component({
   selector: 'app-employee-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
   templateUrl: './employee-form-modal.component.html',
 })
 export class EmployeeFormModalComponent implements OnChanges {
+  readonly X = X;
+  readonly Info = Info;
+
   @Input() isOpen: boolean = false;
   @Input() mode: 'create' | 'edit' | 'view' = 'view';
   @Input() employee: Employee | null = null;

@@ -7,14 +7,30 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Employee } from '../../../../shared/models/app.types';
+import {
+  Eye,
+  LucideAngularModule,
+  Mail,
+  SquarePen,
+  Trash2,
+  UserRound,
+  UsersRound,
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-employee-card',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, LucideAngularModule],
   templateUrl: './employee-card.component.html',
 })
 export class EmployeeCardComponent {
+  readonly Eye = Eye;
+  readonly SquarePen = SquarePen;
+  readonly Trash2 = Trash2;
+  readonly Mail = Mail;
+  readonly UserRound = UserRound;
+  readonly UsersRound = UsersRound;
+
   @Input({ required: true }) employee!: Employee;
   @Input() supervisorName?: string;
   @Input() teammateNames: string[] = [];

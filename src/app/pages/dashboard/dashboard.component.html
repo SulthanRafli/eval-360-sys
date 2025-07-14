@@ -1,177 +1,199 @@
-<div class="space-y-8">
-  <div>
-    <h1 class="text-2xl font-bold text-gray-800">Dashboard</h1>
-    <p class="mt-1 text-sm text-gray-600">Selamat datang kembali, Name!</p>
+<div class="space-y-6">
+  <!-- Header -->
+  <div class="md:flex md:items-center md:justify-between">
+    <div class="flex-1 min-w-0">
+      <h2
+        class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate"
+      >
+        Dashboard
+      </h2>
+      <p class="mt-1 text-sm text-gray-500">
+        Ringkasan sistem evaluasi karyawan 360 derajat
+      </p>
+    </div>
+    <div class="mt-4 flex md:mt-0 md:ml-4">
+      <button
+        class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+      >
+        <lucide-angular
+          [img]="Calendar"
+          class="w-4 h-4 mr-2 text-gray-400"
+        ></lucide-angular>
+        Periode 2024-Q1
+      </button>
+    </div>
   </div>
 
   <!-- Stats Cards -->
-  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="p-5">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <svg
-              class="h-6 w-6 text-gray-400"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m-7.5-2.962a3.75 3.75 0 1 0-5.25 0m5.25 0a3.75 3.75 0 1 1-5.25 0M3 13.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0m1.5 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0m6.75-3.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0m-1.5-6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0"
-              />
-            </svg>
-          </div>
-          <div class="ml-5 w-0 flex-1">
-            <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">
-                Total Karyawan
-              </dt>
-              <dd class="text-3xl font-semibold text-gray-900">0</dd>
-            </dl>
-          </div>
+  <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    <div
+      *ngFor="let stat of stats"
+      class="relative bg-white pt-5 px-4 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
+    >
+      <dt>
+        <div
+          class="absolute rounded-md p-3"
+          [ngClass]="getStatColorClass(stat.color)"
+        >
+          <lucide-angular
+            [img]="stat.icon"
+            class="w-6 h-6 text-white"
+          ></lucide-angular>
+          <span class="w-6 h-6 text-white"></span>
         </div>
-      </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="p-5">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <svg
-              class="h-6 w-6 text-gray-400"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.286Z"
-              />
-            </svg>
-          </div>
-          <div class="ml-5 w-0 flex-1">
-            <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">
-                Karyawan Senior
-              </dt>
-              <dd class="text-3xl font-semibold text-gray-900">0</dd>
-            </dl>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="bg-white overflow-hidden shadow rounded-lg">
-      <div class="p-5">
-        <div class="flex items-center">
-          <div class="flex-shrink-0">
-            <svg
-              class="h-6 w-6 text-gray-400"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke-width="1.5"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z"
-              />
-            </svg>
-          </div>
-          <div class="ml-5 w-0 flex-1">
-            <dl>
-              <dt class="text-sm font-medium text-gray-500 truncate">
-                Karyawan Junior
-              </dt>
-              <dd class="text-3xl font-semibold text-gray-900">0</dd>
-            </dl>
-          </div>
-        </div>
-      </div>
+        <p class="ml-16 text-sm font-medium text-gray-500 truncate">
+          {{ stat.name }}
+        </p>
+      </dt>
+      <dd class="ml-16 pb-6 flex items-baseline sm:pb-7">
+        <p class="text-2xl font-semibold text-gray-900">
+          {{ stat.value }}
+        </p>
+        <p
+          class="ml-2 flex items-baseline text-sm font-semibold"
+          [ngClass]="
+            stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
+          "
+        >
+          <lucide-angular
+            [img]="stat.changeType === 'decrease' ? TrendingDown : TrendingUp"
+            class="w-4 h-4"
+          ></lucide-angular>
+          <span
+            class="self-center flex-shrink-0 h-4 w-4"
+            [class.rotate-180]="stat.changeType === 'decrease'"
+          ></span>
+          <span class="ml-1">{{ stat.change }}</span>
+        </p>
+      </dd>
     </div>
   </div>
 
-  <!-- Charts -->
-  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
-    <div class="lg:col-span-3 bg-white p-6 rounded-lg shadow">
-      <h3 class="text-lg font-medium text-gray-900">Karyawan per Posisi</h3>
-      <div class="mt-4 h-80">
-        <!-- <canvas
-          baseChart
-          [data]="barChartData()"
-          [options]="barChartOptions"
-          [type]="barChartType"
-        >
-        </canvas> -->
-      </div>
-    </div>
-    <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
-      <h3 class="text-lg font-medium text-gray-900">Karyawan per Departemen</h3>
-      <div class="mt-4 h-80">
-        <!-- <canvas
-          baseChart
-          [data]="pieChartData()"
-          [options]="pieChartOptions"
-          [type]="pieChartType"
-        >
-        </canvas> -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Evaluations -->
-  <div class="bg-white shadow rounded-lg">
-    <div class="p-6">
-      <h3 class="text-lg font-medium text-gray-900">Evaluasi Terkini</h3>
-      <div class="mt-4 flow-root">
-        <ul role="list" class="-my-5 divide-y divide-gray-200">
-          <!-- @for (evaluation of recentEvaluations(); track evaluation.id) {
-          <li class="py-4">
-            <div class="flex items-center space-x-4">
-              <div class="flex-shrink-0">
-                <span
-                  class="h-8 w-8 rounded-full text-sm flex items-center justify-center font-semibold"
-                  [ngClass]="{
-                    'bg-blue-100 text-blue-800':
-                      evaluation.type === 'supervisor',
-                    'bg-green-100 text-green-800':
-                      evaluation.type === 'teammate',
-                    'bg-yellow-100 text-yellow-800': evaluation.type === 'self'
-                  }"
-                >
-                  {{ evaluation.type.charAt(0).toUpperCase() }}
-                </span>
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900 truncate">
-                  {{ evaluation.evaluatorName }} mengevaluasi
-                  {{ evaluation.employeeName }}
-                </p>
-                <p class="text-sm text-gray-500 truncate">
-                  Tipe: <span class="capitalize">{{ evaluation.type }}</span> |
-                  Periode: {{ evaluation.period }}
-                </p>
-              </div>
-              <div>
-                <span class="text-sm text-gray-500">{{
-                  evaluation.submittedAt | date : "mediumDate"
-                }}</span>
-              </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Department Statistics -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          Statistik Departemen Technology
+        </h3>
+        <div class="space-y-4">
+          <div
+            *ngFor="let dept of departmentStats"
+            class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+          >
+            <div>
+              <h4 class="font-medium text-gray-900">{{ dept.name }}</h4>
+              <p class="text-sm text-gray-500">
+                Senior: {{ dept.senior }} | Junior: {{ dept.junior }}
+              </p>
             </div>
-          </li>
-          } @empty {
-          <p class="text-sm text-gray-500 text-center py-4">
-            Belum ada evaluasi.
-          </p>
-          } -->
-        </ul>
+            <div class="text-right">
+              <div class="text-2xl font-bold text-blue-600">
+                {{ dept.total }}
+              </div>
+              <div class="text-xs text-gray-500">Karyawan</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="bg-white shadow rounded-lg">
+      <div class="px-4 py-5 sm:p-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">
+          Aktivitas Terbaru
+        </h3>
+        <div class="flow-root">
+          <ul class="-mb-8">
+            <li *ngFor="let activity of recentActivities; let isLast = last">
+              <div class="relative pb-8">
+                <span
+                  *ngIf="!isLast"
+                  class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+                  aria-hidden="true"
+                ></span>
+                <div class="relative flex space-x-3">
+                  <div>
+                    <span
+                      class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white"
+                      [ngClass]="getStatColorClass(activity.color)"
+                    >
+                      <lucide-angular
+                        [img]="activity.icon"
+                        class="h-6 w-6 text-white items-center justify-center"
+                      ></lucide-angular>
+                    </span>
+                  </div>
+                  <div
+                    class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4"
+                  >
+                    <div>
+                      <p class="text-sm text-gray-500">
+                        {{ activity.message }}
+                        <span class="font-medium text-gray-900">
+                          oleh {{ activity.user }}
+                        </span>
+                      </p>
+                    </div>
+                    <div
+                      class="text-right text-sm whitespace-nowrap text-gray-500"
+                    >
+                      {{ activity.time }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-4">Aksi Cepat</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
+        >
+          <lucide-angular
+            [img]="ClipboardList"
+            class="w-8 h-8 text-blue-600 mr-3"
+          ></lucide-angular>
+          <div class="text-left">
+            <p class="font-medium text-gray-900">Buat Evaluasi Baru</p>
+            <p class="text-sm text-gray-500">Mulai siklus evaluasi 360°</p>
+          </div>
+        </button>
+
+        <button
+          class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 cursor-pointer"
+        >
+          <lucide-angular
+            [img]="Award"
+            class="w-8 h-8 text-green-600 mr-3"
+          ></lucide-angular>
+          <div class="text-left">
+            <p class="font-medium text-gray-900">Lihat Ranking</p>
+            <p class="text-sm text-gray-500">Peringkat karyawan terbaik</p>
+          </div>
+        </button>
+
+        <button
+          class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 cursor-pointer"
+        >
+          <lucide-angular
+            [img]="Calculator"
+            class="w-8 h-8 text-purple-600 mr-3"
+          ></lucide-angular>
+          <div class="text-left">
+            <p class="font-medium text-gray-900">Setup AHP</p>
+            <p class="text-sm text-gray-500">Konfigurasi bobot kriteria</p>
+          </div>
+        </button>
       </div>
     </div>
   </div>
