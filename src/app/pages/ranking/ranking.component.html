@@ -243,31 +243,13 @@
             Top 10 Karyawan - Skor Total
           </h3>
           <div class="h-80">
-            <ngx-charts-bar-vertical
-              [results]="barChartData"
-              [scheme]="barChartColorScheme"
-              [xAxis]="true"
-              [yAxis]="true"
-              [legend]="false"
-              [showGridLines]="true"
-              [roundDomains]="true"
-              [animations]="false"
-              [yAxisTickFormatting]="formatScore"
+            <canvas
+              baseChart
+              [data]="barChartData"
+              [options]="barChartOptions"
+              type="bar"
             >
-              <ng-template #tooltipTemplate let-model="model">
-                <div
-                  class="bg-white p-3 border border-gray-300 rounded-lg shadow-lg"
-                >
-                  <p class="font-medium">{{ model.name }}</p>
-                  <p class="text-sm text-gray-600">
-                    {{ model.extra.position }}
-                  </p>
-                  <p class="text-blue-600 font-bold">
-                    Skor: {{ model.value | number : "1.2-2" }}
-                  </p>
-                </div>
-              </ng-template>
-            </ngx-charts-bar-vertical>
+            </canvas>
           </div>
         </div>
         <div class="bg-white shadow rounded-lg p-6">
@@ -275,15 +257,13 @@
             Distribusi Skor per Kriteria
           </h3>
           <div class="h-80">
-            <ngx-charts-pie-chart
-              [results]="pieChartData"
-              [legend]="false"
-              [labels]="true"
-              [doughnut]="true"
-              [animations]="false"
-              [scheme]="pieChartColorScheme"
+            <canvas
+              baseChart
+              [data]="pieChartData"
+              [options]="pieChartOptions"
+              type="pie"
             >
-            </ngx-charts-pie-chart>
+            </canvas>
           </div>
         </div>
       </div>
@@ -302,14 +282,13 @@
                 Profil Kompetensi
               </h4>
               <div class="h-80">
-                <!-- <ngx-charts-polar-chart
-                  [results]="radarChartData"
-                  [xAxis]="true"
-                  [yAxis]="true"
-                  [legend]="false"
-                  [scheme]="colorScheme"
+                <canvas
+                  baseChart
+                  [data]="radarChartData"
+                  [options]="radarChartOptions"
+                  type="radar"
                 >
-                </ngx-charts-polar-chart> -->
+                </canvas>
               </div>
             </div>
             <div>

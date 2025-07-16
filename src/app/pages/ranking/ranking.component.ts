@@ -19,8 +19,8 @@ import {
   Award,
   Star,
 } from 'lucide-angular';
-import { Color, NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
-import { provideNoopAnimations } from '@angular/platform-browser/animations';
+import { ChartData, ChartOptions, ChartType } from 'chart.js';
+import { BaseChartDirective } from 'ng2-charts';
 
 // Interfaces
 interface SavedAHPWeights {
@@ -45,7 +45,7 @@ interface DetailedEmployeeScore extends EmployeeAHPScore {
 @Component({
   selector: 'app-ranking',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule, NgxChartsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, BaseChartDirective],
   templateUrl: './ranking.component.html',
   styleUrls: ['./ranking.component.css'],
 })
@@ -66,29 +66,92 @@ export class RankingComponent implements OnInit {
 
   // Derived data for charts
   topPerformers: DetailedEmployeeScore[] = [];
-  barChartData: any[] = [];
-  pieChartData: any[] = [];
-  radarChartData: any[] = [];
 
   // Chart configurations
   barChartView: [number, number] = [700, 400];
   pieChartView: [number, number] = [500, 400];
 
-  // Custom color scheme for the bar chart
-  barChartColorScheme: Color = {
-    name: 'employeeScores',
-    selectable: true,
-    group: ScaleType.Ordinal,
-    domain: ['#3B82F6'],
+  // Chart.js data properties
+  barChartData: ChartData<'bar'> = {
+    labels: [],
+    datasets: [{ data: [], label: 'Total Score', backgroundColor: '#3B82F6' }],
   };
+  barChartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          title: (context) => context[0].label,
+          label: (context) => `Score: ${context.raw}`,
+        },
+      },
+    },
+  };
+  barChartType: ChartType = 'bar';
 
-  // Custom color scheme for the pie chart
-  pieChartColorScheme: Color = {
-    name: 'criteriaDistribution',
-    selectable: true,
-    group: ScaleType.Ordinal,
-    domain: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'],
+  pieChartData: ChartData<'pie'> = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        backgroundColor: [
+          '#3B82F6',
+          '#10B981',
+          '#F59E0B',
+          '#EF4444',
+          '#8B5CF6',
+        ],
+      },
+    ],
   };
+  pieChartOptions: ChartOptions<'pie'> = {
+    responsive: true,
+    plugins: {
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const label = context.label || '';
+            const value = context.raw as number;
+            const weight =
+              this.criteriaDistribution.find((c) => c.name === label)?.weight ||
+              0;
+            return `${label}: ${value.toFixed(2)} (Weight: ${(
+              weight * 100
+            ).toFixed(1)}%)`;
+          },
+        },
+      },
+    },
+  };
+  pieChartType: ChartType = 'pie';
+  criteriaDistribution: any[] = [];
+
+  radarChartData: ChartData<'radar'> = {
+    labels: [],
+    datasets: [
+      {
+        data: [],
+        label: 'Score',
+        borderColor: '#3B82F6',
+        backgroundColor: 'rgba(59, 130, 246, 0.3)',
+        borderWidth: 2,
+      },
+    ],
+  };
+  radarChartOptions: ChartOptions<'radar'> = {
+    responsive: true,
+    scales: {
+      r: {
+        min: 0,
+        max: 5,
+        ticks: {
+          stepSize: 1,
+        },
+      },
+    },
+  };
+  radarChartType: ChartType = 'radar';
+
   public evaluationCriteria = evaluationCriteria;
 
   constructor() {}
@@ -109,118 +172,6 @@ export class RankingComponent implements OnInit {
         console.error('Error loading saved AHP weights:', error);
       }
     }
-  }
-
-  calculateAndSetEmployeeScores(): void {
-    // Mock evaluation data generation (as in the React component)
-    const mockEvaluationData: {
-      [employeeId: string]: { [questionId: string]: number };
-    } = {};
-    mockEmployees.forEach((employee) => {
-      mockEvaluationData[employee.id] = {};
-      evaluationCriteria.forEach((criteria) => {
-        criteria.questions.forEach((question) => {
-          const baseScore = 3.5 + Math.random() * 1.5;
-          mockEvaluationData[employee.id][question.id] = Math.round(baseScore);
-        });
-      });
-    });
-
-    // Define weights and mapping
-    let weights: { [key: string]: number };
-    let subcriteriaWeights: { [key: string]: { [key: string]: number } };
-    const criteriaSubcriteriaMapping: { [criteriaId: string]: string[] } = {};
-    evaluationCriteria.forEach((criteria) => {
-      criteriaSubcriteriaMapping[criteria.id] = criteria.questions.map(
-        (q) => q.id
-      );
-    });
-
-    if (this.activeWeights) {
-      weights = this.activeWeights.weights;
-      subcriteriaWeights = this.activeWeights.subcriteriaWeights;
-    } else {
-      // Fallback to equal weights
-      weights = {};
-      subcriteriaWeights = {};
-      evaluationCriteria.forEach((c) => {
-        weights[c.id] = 1 / evaluationCriteria.length;
-        subcriteriaWeights[c.id] = {};
-        c.questions.forEach((q) => {
-          subcriteriaWeights[c.id][q.id] = 1 / c.questions.length;
-        });
-      });
-    }
-
-    const ahpScores = calculateMultipleEmployeeScores(
-      mockEvaluationData,
-      weights,
-      subcriteriaWeights,
-      criteriaSubcriteriaMapping
-    );
-
-    this.employeeScores = ahpScores.map((score, index) => {
-      const employee = mockEmployees.find((emp) => emp.id === score.employeeId);
-      const evaluationCount =
-        mockEvaluations.filter((e) => e.employeeId === score.employeeId)
-          .length || 4;
-      return { ...score, employee, rank: index + 1, evaluationCount };
-    });
-
-    this.prepareDerivedData();
-  }
-
-  prepareDerivedData(): void {
-    this.topPerformers = this.employeeScores.slice(0, 3);
-
-    // Data for Bar Chart
-    this.barChartData = this.employeeScores.slice(0, 10).map((score) => ({
-      name: score.employee.name.split(' ')[0],
-      value: score.totalScore,
-      extra: {
-        normalized: score.normalizedScore,
-      },
-    }));
-
-    // Data for Pie Chart
-    this.pieChartData = evaluationCriteria.map((criteria) => {
-      const avgScore =
-        this.employeeScores.reduce((sum, emp) => {
-          const criteriaScore = emp.criteriaScores.find(
-            (cs) => cs.criteriaId === criteria.id
-          );
-          return sum + (criteriaScore?.totalWeightedScore || 0);
-        }, 0) / this.employeeScores.length;
-      return { name: criteria.name, value: avgScore };
-    });
-
-    if (this.selectedEmployeeId) {
-      this.updateRadarChartData();
-    }
-  }
-
-  onEmployeeSelectionChange(employeeId: string): void {
-    this.selectedEmployeeId = employeeId;
-    if (employeeId) {
-      this.updateRadarChartData();
-    } else {
-      this.radarChartData = [];
-    }
-  }
-
-  updateRadarChartData(): void {
-    const employeeScore = this.employeeScores.find(
-      (e) => e.employeeId === this.selectedEmployeeId
-    );
-    if (!employeeScore) return;
-
-    this.radarChartData = employeeScore.criteriaScores.map((cs) => {
-      const criteria = evaluationCriteria.find((c) => c.id === cs.criteriaId);
-      const avgScore =
-        cs.subcriteriaScores.reduce((sum, sub) => sum + sub.score, 0) /
-        cs.subcriteriaScores.length;
-      return { name: criteria?.name || 'Unknown', value: avgScore };
-    });
   }
 
   // --- Template Helper Methods ---
@@ -293,5 +244,189 @@ export class RankingComponent implements OnInit {
 
   formatScore(val: number): string {
     return val.toFixed(2);
+  }
+
+  loadSavedAHPWeights(): void {
+    const saved = localStorage.getItem('ahpWeights');
+    if (saved) {
+      try {
+        const parsedWeights = JSON.parse(saved);
+        this.savedWeights = parsedWeights;
+        this.activeWeights =
+          parsedWeights.find((w: SavedAHPWeights) => w.isActive) || null;
+      } catch (error) {
+        console.error('Error loading saved AHP weights:', error);
+      }
+    }
+  }
+
+  calculateAndSetEmployeeScores(): void {
+    const mockEvaluationData: {
+      [employeeId: string]: { [questionId: string]: number };
+    } = {};
+
+    mockEmployees.forEach((employee) => {
+      mockEvaluationData[employee.id] = {};
+      evaluationCriteria.forEach((criteria) => {
+        criteria.questions.forEach((question) => {
+          const baseScore = 3.5 + Math.random() * 1.5;
+          mockEvaluationData[employee.id][question.id] = Math.round(baseScore);
+        });
+      });
+    });
+
+    const criteriaSubcriteriaMapping: { [criteriaId: string]: string[] } = {};
+    evaluationCriteria.forEach((criteria) => {
+      criteriaSubcriteriaMapping[criteria.id] = criteria.questions.map(
+        (q) => q.id
+      );
+    });
+
+    let ahpScores: EmployeeAHPScore[];
+
+    if (this.activeWeights) {
+      ahpScores = calculateMultipleEmployeeScores(
+        mockEvaluationData,
+        this.activeWeights.weights,
+        this.activeWeights.subcriteriaWeights,
+        criteriaSubcriteriaMapping
+      );
+    } else {
+      const equalWeights: { [criteriaId: string]: number } = {};
+      const equalSubcriteriaWeights: {
+        [criteriaId: string]: { [subcriteriaId: string]: number };
+      } = {};
+
+      evaluationCriteria.forEach((criteria) => {
+        equalWeights[criteria.id] = 1 / evaluationCriteria.length;
+        equalSubcriteriaWeights[criteria.id] = {};
+        criteria.questions.forEach((question) => {
+          equalSubcriteriaWeights[criteria.id][question.id] =
+            1 / criteria.questions.length;
+        });
+      });
+
+      ahpScores = calculateMultipleEmployeeScores(
+        mockEvaluationData,
+        equalWeights,
+        equalSubcriteriaWeights,
+        criteriaSubcriteriaMapping
+      );
+    }
+
+    const detailedScores: DetailedEmployeeScore[] = ahpScores.map(
+      (score, index) => {
+        const employee = mockEmployees.find(
+          (emp) => emp.id === score.employeeId
+        );
+        const evaluationCount =
+          mockEvaluations.filter((e) => e.employeeId === score.employeeId)
+            .length || 4;
+
+        return {
+          ...score,
+          employee: employee!,
+          rank: index + 1,
+          evaluationCount,
+        };
+      }
+    );
+
+    this.employeeScores = detailedScores;
+    this.topPerformers = this.employeeScores.slice(0, 3);
+    this.updateChartData();
+  }
+
+  updateChartData(): void {
+    // Bar Chart Data
+    const top10Scores = this.employeeScores.slice(0, 10);
+    this.barChartData = {
+      labels: top10Scores.map((s) => s.employee.name.split(' ')[0]),
+      datasets: [
+        {
+          data: top10Scores.map((s) => s.totalScore),
+          label: 'Total Score',
+          backgroundColor: '#3B82F6',
+        },
+      ],
+    };
+
+    // Pie Chart Data
+    this.criteriaDistribution = evaluationCriteria.map((criteria, index) => {
+      const avgScore =
+        this.employeeScores.reduce((sum, emp) => {
+          const criteriaScore = emp.criteriaScores.find(
+            (cs) => cs.criteriaId === criteria.id
+          );
+          return sum + (criteriaScore?.totalWeightedScore || 0);
+        }, 0) / this.employeeScores.length;
+
+      return {
+        name: criteria.name,
+        value: avgScore,
+        weight: this.activeWeights
+          ? this.activeWeights.weights[criteria.id]
+          : 1 / evaluationCriteria.length,
+        color: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][index],
+      };
+    });
+
+    this.pieChartData = {
+      labels: this.criteriaDistribution.map((c) => c.name),
+      datasets: [
+        {
+          data: this.criteriaDistribution.map((c) => c.value),
+          backgroundColor: this.criteriaDistribution.map((c) => c.color),
+        },
+      ],
+    };
+
+    // Radar Chart Data (for selected employee)
+    this.updateRadarChart();
+  }
+
+  updateRadarChart(): void {
+    if (this.selectedEmployeeId) {
+      const selectedScore = this.employeeScores.find(
+        (emp) => emp.employeeId === this.selectedEmployeeId
+      );
+      if (selectedScore) {
+        const radarData = evaluationCriteria.map((criteria) => {
+          const criteriaScore = selectedScore.criteriaScores.find(
+            (cs) => cs.criteriaId === criteria.id
+          );
+          const avgSubcriteriaScore = criteriaScore
+            ? criteriaScore.subcriteriaScores.reduce(
+                (sum, sub) => sum + sub.score,
+                0
+              ) / criteriaScore.subcriteriaScores.length
+            : 0;
+          return {
+            criteria: criteria.name,
+            score: avgSubcriteriaScore,
+          };
+        });
+
+        this.radarChartData = {
+          labels: radarData.map((d) => d.criteria),
+          datasets: [
+            {
+              data: radarData.map((d) => d.score),
+              label: 'Score',
+              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(59, 130, 246, 0.3)',
+              borderWidth: 2,
+            },
+          ],
+        };
+      }
+    }
+  }
+
+  onEmployeeSelectionChange(employeeId: string): void {
+    this.selectedEmployeeId = employeeId;
+    if (employeeId) {
+      this.updateRadarChart();
+    }
   }
 }

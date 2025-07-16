@@ -42,7 +42,7 @@ interface SavedAHPWeights {
 @Component({
   selector: 'app-ahp',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule], // Import modul yang diperlukan
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './ahp.component.html',
   styleUrls: ['./ahp.component.css'],
 })
@@ -69,15 +69,103 @@ export class AhpComponent implements OnInit {
 
   criteria = evaluationCriteria;
   scaleValues = [
-    { value: 1, label: '1 - Sama penting' },
-    { value: 2, label: '2 - Sedikit lebih penting' },
-    { value: 3, label: '3 - Lebih penting' },
-    { value: 4, label: '4 - Sangat lebih penting' },
-    { value: 5, label: '5 - Mutlak lebih penting' },
-    { value: 6, label: '6 - Antara 5 dan 7' },
-    { value: 7, label: '7 - Sangat mutlak lebih penting' },
-    { value: 8, label: '8 - Antara 7 dan 9' },
-    { value: 9, label: '9 - Ekstrim lebih penting' },
+    {
+      value: 1 / 9,
+      label: '1/9',
+      description: 'Ekstrim kurang penting',
+      color: 'bg-red-600',
+    },
+    {
+      value: 1 / 8,
+      label: '1/8',
+      description: 'Antara 1/9 dan 1/7',
+      color: 'bg-red-500',
+    },
+    {
+      value: 1 / 7,
+      label: '1/7',
+      description: 'Sangat mutlak kurang penting',
+      color: 'bg-red-400',
+    },
+    {
+      value: 1 / 6,
+      label: '1/6',
+      description: 'Antara 1/7 dan 1/5',
+      color: 'bg-red-300',
+    },
+    {
+      value: 1 / 5,
+      label: '1/5',
+      description: 'Mutlak kurang penting',
+      color: 'bg-orange-400',
+    },
+    {
+      value: 1 / 4,
+      label: '1/4',
+      description: 'Sangat kurang penting',
+      color: 'bg-orange-300',
+    },
+    {
+      value: 1 / 3,
+      label: '1/3',
+      description: 'Kurang penting',
+      color: 'bg-yellow-400',
+    },
+    {
+      value: 1 / 2,
+      label: '1/2',
+      description: 'Sedikit kurang penting',
+      color: 'bg-yellow-300',
+    },
+    { value: 1, label: '1', description: 'Sama penting', color: 'bg-gray-400' },
+    {
+      value: 2,
+      label: '2',
+      description: 'Sedikit lebih penting',
+      color: 'bg-green-300',
+    },
+    {
+      value: 3,
+      label: '3',
+      description: 'Lebih penting',
+      color: 'bg-green-400',
+    },
+    {
+      value: 4,
+      label: '4',
+      description: 'Sangat lebih penting',
+      color: 'bg-green-500',
+    },
+    {
+      value: 5,
+      label: '5',
+      description: 'Mutlak lebih penting',
+      color: 'bg-blue-400',
+    },
+    {
+      value: 6,
+      label: '6',
+      description: 'Antara 5 dan 7',
+      color: 'bg-blue-500',
+    },
+    {
+      value: 7,
+      label: '7',
+      description: 'Sangat mutlak lebih penting',
+      color: 'bg-blue-600',
+    },
+    {
+      value: 8,
+      label: '8',
+      description: 'Antara 7 dan 9',
+      color: 'bg-purple-500',
+    },
+    {
+      value: 9,
+      label: '9',
+      description: 'Ekstrim lebih penting',
+      color: 'bg-purple-600',
+    },
   ];
   randomIndex = [0, 0, 0.52, 0.89, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49];
 
@@ -109,34 +197,34 @@ export class AhpComponent implements OnInit {
   ngOnInit(): void {
     // Inisialisasi subkriteria dari data evaluasi
     const initialSubcriteria: Subcriteria[] = [];
-    evaluationCriteria.forEach((criteria) => {
+    evaluationCriteria.forEach((criteria, i) => {
       initialSubcriteria.push(
         {
-          id: 'sub-' + criteria.id,
+          id: `sub-A${i}-${criteria.id}`,
           code: 'SK',
           name: 'Sangat Kurang',
           criteriaId: criteria.id,
         },
         {
-          id: 'sub-' + criteria.id,
+          id: `sub-B${i}-${criteria.id}`,
           code: 'K',
           name: 'Kurang',
           criteriaId: criteria.id,
         },
         {
-          id: 'sub-' + criteria.id,
+          id: `sub-C${i}-${criteria.id}`,
           code: 'C',
           name: 'Cukup',
           criteriaId: criteria.id,
         },
         {
-          id: 'sub-' + criteria.id,
+          id: `sub-D${i}-${criteria.id}`,
           code: 'B',
           name: 'Baik',
           criteriaId: criteria.id,
         },
         {
-          id: 'sub-' + criteria.id,
+          id: `sub-E${i}-${criteria.id}`,
           code: 'SB',
           name: 'Sangat Baik',
           criteriaId: criteria.id,
@@ -222,27 +310,48 @@ export class AhpComponent implements OnInit {
   }
 
   calculateEigenVector(matrix: number[][]): number[] {
-    const n = matrix.length;
+    const n = matrix.length; // Number of rows
     if (n === 0) return [];
 
-    const rowSums = matrix.map((row) => row.reduce((sum, val) => sum + val, 0));
-    const totalSum = rowSums.reduce((sum, val) => sum + val, 0);
-    return rowSums.map((sum) => sum / totalSum);
+    const m = matrix[0].length; // Number of columns
+    if (m === 0) return [];
+
+    // Calculate the sum of each column
+    const columnSums = new Array(m).fill(0);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < m; j++) {
+        columnSums[j] += matrix[i][j];
+      }
+    }
+
+    const weights = matrix.map((row) => {
+      const rowSum = row.reduce((sum, val, index) => {
+        const wi = val / columnSums[index];
+        return sum + wi;
+      }, 0);
+
+      return rowSum / n;
+    });
+    return weights;
   }
 
   calculateConsistencyRatio(matrix: number[][], weights: number[]): number {
     const n = matrix.length;
     if (n <= 2) return 0;
 
-    const weightedSum = matrix.map((row) =>
+    const weightedSum = matrix.map((row, i) =>
       row.reduce((sum, val, j) => sum + val * weights[j], 0)
     );
 
     const lambdaMax =
       weightedSum.reduce((sum, val, i) => sum + val / weights[i], 0) / n;
+
     const ci = (lambdaMax - n) / (n - 1);
     const ri = this.randomIndex[n - 1] || 1.49;
 
+    console.log(ci);
+    console.log(ri);
+    console.log(ci / ri);
     return ci / ri;
   }
 
@@ -298,7 +407,6 @@ export class AhpComponent implements OnInit {
     });
 
     this.subcriteriaWeights = newSubcriteriaWeights;
-    console.log('Subcriteria Weights:', this.subcriteriaWeights);
     this.subcriteriaConsistencyRatios = newSubcriteriaConsistencyRatios;
   }
 
@@ -316,6 +424,7 @@ export class AhpComponent implements OnInit {
     if (index > -1) {
       this.comparisons.splice(index, 1);
     }
+
     this.comparisons.push({ criteriaA, criteriaB, value });
   }
 
@@ -440,8 +549,6 @@ export class AhpComponent implements OnInit {
   }
 
   getSubcriteriaForCriteria(criteriaId: string): Subcriteria[] {
-    console.log('Subcriteria Weights:', this.subcriteriaWeights);
-
     return this.subcriteria.filter((s) => s.criteriaId === criteriaId);
   }
 
@@ -462,5 +569,37 @@ export class AhpComponent implements OnInit {
       (this.weights?.[criterionId] ?? 0) *
       (this.subcriteriaWeights?.[criterionId]?.[subId] ?? 0)
     );
+  }
+
+  getValueSub(criteriaId: string, idA: string, idB: string) {
+    return this.scaleValues.findIndex(
+      (s) =>
+        s.value === this.getSubcriteriaComparisonValue(criteriaId, idA, idB)
+    );
+  }
+
+  getDescSub(criteriaId: string, idA: string, idB: string) {
+    return this.scaleValues.find(
+      (s) =>
+        s.value === this.getSubcriteriaComparisonValue(criteriaId, idA, idB)
+    )?.description;
+  }
+
+  getValue(idA: string, idB: string) {
+    return this.scaleValues.findIndex(
+      (s) => s.value === this.getComparisonValue(idA, idB)
+    );
+  }
+
+  getDesc(idA: string, idB: string) {
+    return this.scaleValues.find(
+      (s) => s.value === this.getComparisonValue(idA, idB)
+    )?.description;
+  }
+
+  getSelectedScale(ev: any): number {
+    const value = ev?.target?.value || 1;
+    const selectedScale = this.scaleValues[parseInt(value)];
+    return selectedScale?.value || 1;
   }
 }

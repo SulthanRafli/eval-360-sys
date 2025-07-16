@@ -29,7 +29,9 @@
 
   <div class="bg-white shadow rounded-lg">
     <div class="px-6 py-4">
-      <nav class="flex flex-wrap gap-x-8 gap-y-4">
+      <nav
+        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+      >
         <button
           *ngFor="let step of steps"
           (click)="currentStep = step.number"
@@ -97,29 +99,116 @@
                     {{ criteriaB.code }}. {{ criteriaB.name }}
                   </h4>
                 </div>
+                <div class="text-right">
+                  <div class="text-lg font-bold text-blue-600">
+                    {{getComparisonValue(criteriaA.id, criteriaB.id) === 1 ? '1' : 
+                         getComparisonValue(criteriaA.id, criteriaB.id) < 1 ? 
+                         `1/${(1/getComparisonValue(criteriaA.id, criteriaB.id)) | number: "1.0"}` :
+                         getComparisonValue(criteriaA.id, criteriaB.id).toString()}}
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ getDesc(criteriaA.id, criteriaB.id) }}
+                  </div>
+                </div>
               </div>
-              <div class="grid grid-cols-3 gap-3">
-                <button
-                  *ngFor="let scale of scaleValues"
-                  (click)="
-                    handleComparisonChange(
-                      criteriaA.id,
-                      criteriaB.id,
-                      scale.value
-                    )
-                  "
-                  [ngClass]="{
-                    'bg-blue-600 text-white border-blue-600':
-                      getComparisonValue(criteriaA.id, criteriaB.id) ===
-                      scale.value,
-                    'bg-white text-gray-700 border-gray-300 hover:bg-gray-50':
-                      getComparisonValue(criteriaA.id, criteriaB.id) !==
-                      scale.value
-                  }"
-                  class="p-3 text-sm rounded-md border transition-all duration-200 cursor-pointer"
-                >
-                  {{ scale.label }}
-                </button>
+              <div class="space-y-4">
+                <div class="px-4">
+                  <div class="relative">
+                    <input
+                      type="range"
+                      min="0"
+                      [max]="scaleValues.length - 1"
+                      [value]="getValue(criteriaA.id, criteriaB.id)"
+                      (change)="
+                        handleComparisonChange(
+                          criteriaA.id,
+                          criteriaB.id,
+                          getSelectedScale($event)
+                        )
+                      "
+                      class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                      [ngStyle]="{background: `linear-gradient(to right, #dc2626 0%, #f97316 20%, #eab308 40%, #6b7280 50%, #16a34a 60%, #2563eb 80%, #9333ea 100%)`}"
+                    />
+                    <div
+                      class="flex justify-between text-xs text-gray-500 mt-1"
+                    >
+                      <span>Kurang Penting</span>
+                      <span>Sama</span>
+                      <span>Lebih Penting</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-9 gap-1">
+                  <ng-container *ngFor="let scale of scaleValues">
+                    <div class="relative group">
+                      <button
+                        (click)="
+                          handleComparisonChange(
+                            criteriaA.id,
+                            criteriaB.id,
+                            scale.value
+                          )
+                        "
+                        class="w-full p-2 text-xs rounded-md border transition-all duration-200 cursor-pointer"
+                        [ngClass]="getComparisonValue(criteriaA.id, criteriaB.id) === scale.value ? `${scale.color} text-white border-transparent shadow-lg transform scale-105`: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                      >
+                        {{ scale.label }}
+                      </button>
+
+                      <div
+                        class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
+                      >
+                        {{ scale.description }}
+                        <div
+                          class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"
+                        ></div>
+                      </div>
+                    </div>
+                  </ng-container>
+                </div>
+
+                <div class="flex justify-center space-x-2">
+                  <button
+                    (click)="
+                      handleComparisonChange(criteriaA.id, criteriaB.id, 1 / 3)
+                    "
+                    class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                    [ngClass]="
+                      getComparisonValue(criteriaA.id, criteriaB.id) === 1 / 3
+                        ? 'bg-yellow-400 text-white border-yellow-400'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    "
+                  >
+                    A kurang penting
+                  </button>
+                  <button
+                    (click)="
+                      handleComparisonChange(criteriaA.id, criteriaB.id, 1)
+                    "
+                    class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                    [ngClass]="
+                      getComparisonValue(criteriaA.id, criteriaB.id) === 1
+                        ? 'bg-gray-400 text-white border-gray-400'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    "
+                  >
+                    Sama penting
+                  </button>
+                  <button
+                    (click)="
+                      handleComparisonChange(criteriaA.id, criteriaB.id, 3)
+                    "
+                    class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                    [ngClass]="
+                      getComparisonValue(criteriaA.id, criteriaB.id) === 3
+                        ? 'bg-green-400 text-white border-green-400'
+                        : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                    "
+                  >
+                    A lebih penting
+                  </button>
+                </div>
               </div>
             </div>
           </ng-container>
@@ -254,44 +343,156 @@
                 "
                 class="border border-gray-200 rounded-lg p-4"
               >
-                <div class="flex-1">
-                  <h4 class="font-medium text-gray-900 text-sm">
-                    {{ subA.code }}. {{ subA.name }}
-                  </h4>
-                  <p class="text-sm text-gray-500">vs</p>
-                  <h4 class="font-medium text-gray-900 text-sm">
-                    {{ subB.code }}. {{ subB.name }}
-                  </h4>
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex-1">
+                    <h4 class="font-medium text-gray-900 text-sm">
+                      {{ subA.code }}. {{ subA.name }}
+                    </h4>
+                    <p class="text-sm text-gray-500">vs</p>
+                    <h4 class="font-medium text-gray-900 text-sm">
+                      {{ subB.code }}. {{ subB.name }}
+                    </h4>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-lg font-bold text-blue-600">
+                      {{getSubcriteriaComparisonValue(criterion.id, subA.id, subB.id) === 1 ? '1' : 
+                         getSubcriteriaComparisonValue(criterion.id, subA.id, subB.id) < 1 ? 
+                         `1/${(1/getSubcriteriaComparisonValue(criterion.id, subA.id, subB.id)) | number: "1.0"}` :
+                         getSubcriteriaComparisonValue(criterion.id, subA.id, subB.id).toString()}}
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {{ getDescSub(criterion.id, subA.id, subB.id) }}
+                    </div>
+                  </div>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                  <button
-                    *ngFor="let scale of scaleValues"
-                    (click)="
-                      handleSubcriteriaComparisonChange(
-                        criterion.id,
-                        subA.id,
-                        subB.id,
-                        scale.value
-                      )
-                    "
-                    [ngClass]="{
-                      'bg-purple-600 text-white border-purple-600':
+                <div class="space-y-4">
+                  <div class="px-4">
+                    <div class="relative">
+                      <input
+                        type="range"
+                        min="0"
+                        [max]="scaleValues.length - 1"
+                        [value]="getValueSub(criterion.id, subA.id, subB.id)"
+                        (change)="
+                          handleSubcriteriaComparisonChange(
+                            criterion.id,
+                            subA.id,
+                            subB.id,
+                            getSelectedScale($event)
+                          )
+                        "
+                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                        [ngStyle]="{background: `linear-gradient(to right, #dc2626 0%, #f97316 20%, #eab308 40%, #6b7280 50%, #16a34a 60%, #2563eb 80%, #9333ea 100%)`}"
+                      />
+                      <div
+                        class="flex justify-between text-xs text-gray-500 mt-1"
+                      >
+                        <span>Kurang Penting</span>
+                        <span>Sama</span>
+                        <span>Lebih Penting</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-9 gap-1">
+                    <ng-container *ngFor="let scale of scaleValues">
+                      <div class="relative group">
+                        <button
+                          (click)="
+                            handleSubcriteriaComparisonChange(
+                              criterion.id,
+                              subA.id,
+                              subB.id,
+                              scale.value
+                            )
+                          "
+                          class="w-full p-2 text-xs rounded-md border transition-all duration-200 cursor-pointer"
+                          [ngClass]="getSubcriteriaComparisonValue(criterion.id,subA.id, subB.id) === scale.value ? `${scale.color} text-white border-transparent shadow-lg transform scale-105`: 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'"
+                        >
+                          {{ scale.label }}
+                        </button>
+
+                        <div
+                          class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
+                        >
+                          {{ scale.description }}
+                          <div
+                            class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"
+                          ></div>
+                        </div>
+                      </div>
+                    </ng-container>
+                  </div>
+
+                  <div class="flex justify-center space-x-2">
+                    <button
+                      (click)="
+                        handleSubcriteriaComparisonChange(
+                          criterion.id,
+                          subA.id,
+                          subB.id,
+                          1 / 3
+                        )
+                      "
+                      class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                      [ngClass]="
                         getSubcriteriaComparisonValue(
                           criterion.id,
                           subA.id,
                           subB.id
-                        ) === scale.value,
-                      'bg-white text-gray-700 border-gray-300 hover:bg-gray-50':
+                        ) ===
+                        1 / 3
+                          ? 'bg-yellow-400 text-white border-yellow-400'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      "
+                    >
+                      A kurang penting
+                    </button>
+                    <button
+                      (click)="
+                        handleSubcriteriaComparisonChange(
+                          criterion.id,
+                          subA.id,
+                          subB.id,
+                          1
+                        )
+                      "
+                      class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                      [ngClass]="
                         getSubcriteriaComparisonValue(
                           criterion.id,
                           subA.id,
                           subB.id
-                        ) !== scale.value
-                    }"
-                    class="p-2 text-xs rounded-md border transition-all duration-200 cursor-pointer"
-                  >
-                    {{ scale.label }}
-                  </button>
+                        ) === 1
+                          ? 'bg-gray-400 text-white border-gray-400'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      "
+                    >
+                      Sama penting
+                    </button>
+                    <button
+                      (click)="
+                        handleSubcriteriaComparisonChange(
+                          criterion.id,
+                          subA.id,
+                          subB.id,
+                          3
+                        )
+                      "
+                      class="px-3 py-1 text-xs rounded-full border transition-all duration-200 cursor-pointer"
+                      [ngClass]="
+                        getSubcriteriaComparisonValue(
+                          criterion.id,
+                          subA.id,
+                          subB.id
+                        ) === 3
+                          ? 'bg-green-400 text-white border-green-400'
+                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                      "
+                    >
+                      A lebih penting
+                    </button>
+                  </div>
                 </div>
               </div>
             </ng-container>
