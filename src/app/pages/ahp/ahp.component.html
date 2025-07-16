@@ -309,7 +309,10 @@
         </div>
       </div>
     </div>
-    <div *ngFor="let criterion of criteria" class="bg-white shadow rounded-lg">
+    <div
+      *ngFor="let criterion of criteria; let i = index"
+      class="bg-white shadow rounded-lg"
+    >
       <div
         *ngIf="getSubcriteriaForCriteria(criterion.id).length <= 1"
         class="text-center py-8 text-gray-500"
@@ -321,10 +324,24 @@
         </p>
       </div>
       <ng-container *ngIf="getSubcriteriaForCriteria(criterion.id).length > 1">
-        <div class="px-6 py-4 border-b border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between">
           <h3 class="text-lg font-medium text-gray-900">
             {{ criterion.code }}. {{ criterion.name }}
           </h3>
+          <label class="inline-flex items-center cursor-pointer" *ngIf="i > 0">
+            <input
+              type="checkbox"
+              (change)="test(criteria[i - 1].id, criterion.id)"
+              value=""
+              class="sr-only peer"
+            />
+            <div
+              class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-600"
+            ></div>
+            <span class="ms-3 text-sm font-medium text-gray-900"
+              >Ikuti Nilai Sebelumnya</span
+            >
+          </label>
         </div>
         <div class="p-6">
           <div class="space-y-6">
@@ -521,7 +538,19 @@
     </div>
     <div class="bg-white shadow rounded-lg">
       <div class="px-6 py-4 border-b border-gray-200">
-        <h3 class="text-lg font-medium text-gray-900">Uji Konsistensi</h3>
+        <div class="flex justify-between">
+          <h3 class="text-lg font-medium text-gray-900">Uji Konsistensi</h3>
+          <button
+            (click)="toggleMatrices()"
+            class="flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
+          >
+            <lucide-icon
+              [img]="showMatrices ? EyeClosed : Eye"
+              class="w-6 h-6 mr-2"
+            />
+            {{ showMatrices ? "Hide" : "Show" }} Detailed
+          </button>
+        </div>
       </div>
       <div class="p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -575,6 +604,39 @@
           </div>
         </div>
       </div>
+      <div *ngIf="showMatrices" class="space-y-6 px-6">
+        <app-matrix-tables
+          title="Tabel 3.5 Matriks Nilai Kriteria"
+          [matrix]="results.pairwiseMatrix"
+          [headers]="criteriaNames"
+          [showSum]="true"
+          [sumValues]="results.sumMatrix"
+          [showPriority]="true"
+          [priorityValues]="results.weights"
+        >
+        </app-matrix-tables>
+        <br />
+        <app-matrix-tables
+          title="Tabel 3.6 Matriks Penjumlahan Setiap Baris"
+          [matrix]="summedMatrixForTable2"
+          [headers]="criteriaNames"
+          [showSum]="true"
+          [sumValues]="rowSumsForTable2"
+        >
+        </app-matrix-tables>
+        <br />
+        <app-matrix-tables
+          title="Tabel 3.11 Perhitungan Rasio Konsistensi Kriteria"
+          [matrix]="matrixForTable3"
+          [headers]="['Jumlah Per Baris']"
+          [showPriority]="true"
+          [priorityValues]="results.weights"
+          [showRatio]="true"
+          [ratioValues]="results.priorityRatios"
+        >
+        </app-matrix-tables>
+        <br />
+      </div>
     </div>
     <div class="bg-white shadow rounded-lg">
       <div class="px-6 py-4 border-b border-gray-200">
@@ -585,7 +647,7 @@
       <div class="p-6">
         <div class="space-y-6">
           <div
-            *ngFor="let criterion of criteria"
+            *ngFor="let criterion of criteria; let i = index"
             class="border border-gray-200 rounded-lg p-4"
           >
             <div class="flex items-center justify-between mb-4">
@@ -593,10 +655,23 @@
                 {{ criterion.code }}. {{ criterion.name }}
               </h4>
               <div class="text-right">
-                <div class="text-lg font-bold text-blue-600">
-                  {{ ((weights[criterion.id] || 0) * 100).toFixed(1) }}%
+                <div class="flex">
+                  <button
+                    (click)="toggleMatricesSub(i)"
+                    class="flex items-center px-2 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer mr-2"
+                  >
+                    <lucide-icon
+                      [img]="showMatricesSubcriteria[i] ? EyeClosed : Eye"
+                      class="w-4 h-4 mr-2"
+                    />
+                    {{ showMatricesSubcriteria[i] ? "Hide" : "Show" }} Detailed
+                  </button>
+                  <div class="bg-blue-100 rounded-lg px-2 py-2">
+                    <div class="text-lg font-bold text-blue-600 r">
+                      {{ ((weights[criterion.id] || 0) * 100).toFixed(1) }}%
+                    </div>
+                  </div>
                 </div>
-                <div class="text-xs text-gray-500">Bobot Kriteria</div>
               </div>
             </div>
             <div
@@ -624,6 +699,42 @@
                     | {{ (getWeight(criterion.id, sub.id) * 100).toFixed(1) }}%
                   </div>
                 </div>
+              </div>
+              <div *ngIf="showMatricesSubcriteria[i]" class="space-y-6">
+                <div class="space-y-2"></div>
+                <app-matrix-tables
+                  title="Tabel 3.5 Matriks Nilai Kriteria"
+                  [matrix]="results.pairwiseMatrix"
+                  [headers]="criteriaNames"
+                  [showSum]="true"
+                  [sumValues]="results.sumMatrix"
+                  [showPriority]="true"
+                  [priorityValues]="results.weights"
+                >
+                </app-matrix-tables>
+                <div class="space-y-2"></div>
+
+                <app-matrix-tables
+                  title="Tabel 3.6 Matriks Penjumlahan Setiap Baris"
+                  [matrix]="summedMatrixForTable2"
+                  [headers]="criteriaNames"
+                  [showSum]="true"
+                  [sumValues]="rowSumsForTable2"
+                >
+                </app-matrix-tables>
+                <div class="space-y-2"></div>
+
+                <app-matrix-tables
+                  title="Tabel 3.11 Perhitungan Rasio Konsistensi Kriteria"
+                  [matrix]="matrixForTable3"
+                  [headers]="['Jumlah Per Baris']"
+                  [showPriority]="true"
+                  [priorityValues]="results.weights"
+                  [showRatio]="true"
+                  [ratioValues]="results.priorityRatios"
+                >
+                </app-matrix-tables>
+                <div class="space-y-2"></div>
               </div>
             </div>
           </div>

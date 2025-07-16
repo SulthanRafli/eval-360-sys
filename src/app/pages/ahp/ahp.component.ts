@@ -2,7 +2,14 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { evaluationCriteria } from '../../shared/data/mock-data';
-import { Calculator, Info, LucideAngularModule } from 'lucide-angular';
+import {
+  Calculator,
+  Eye,
+  EyeClosed,
+  Info,
+  LucideAngularModule,
+} from 'lucide-angular';
+import { MatrixTableComponent } from './components/matrix-tables/matrix-tables.component';
 
 // Definisikan interface yang sama seperti di React
 interface AHPComparison {
@@ -39,16 +46,39 @@ interface SavedAHPWeights {
   isActive: boolean;
 }
 
+interface AhpResults {
+  pairwiseMatrix: number[][];
+  sumMatrix: number[];
+  weights: number[];
+  priorityRatios: number[];
+}
+
 @Component({
   selector: 'app-ahp',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    MatrixTableComponent,
+  ],
   templateUrl: './ahp.component.html',
   styleUrls: ['./ahp.component.css'],
 })
 export class AhpComponent implements OnInit {
   readonly Info = Info;
   readonly Calculator = Calculator;
+  readonly Eye = Eye;
+  readonly EyeClosed = EyeClosed;
+
+  criteriaNames: string[] = []; // Contoh: ['Harga', 'Kualitas', 'Merek', 'Toko']
+  results!: AhpResults;
+  showMatrices: boolean = false;
+  showMatricesSubcriteria: boolean[] = [];
+  summedMatrixForTable2: number[][] = [];
+  rowSumsForTable2: number[] = [];
+  matrixForTable3: number[][] = [];
+
   currentStep = 1;
   comparisons: AHPComparison[] = [];
   subcriteriaComparisons: SubcriteriaComparison[] = [];
@@ -192,9 +222,22 @@ export class AhpComponent implements OnInit {
     },
   ];
 
-  constructor() {}
+  constructor() {
+    this.criteriaNames = ['Nama K1', 'Nama K2', 'Nama K3'];
+    this.results = {
+      pairwiseMatrix: [
+        [1.0, 2.0, 5.0],
+        [0.5, 1.0, 3.0],
+        [0.2, 0.33, 1.0],
+      ],
+      sumMatrix: [1.7, 3.33, 9.0], // Ini seharusnya adalah jumlah per kolom
+      weights: [0.59, 0.3, 0.11],
+      priorityRatios: [0.61, 0.31, 0.12],
+    };
+  }
 
   ngOnInit(): void {
+    this.calculateDerivedMatrices();
     // Inisialisasi subkriteria dari data evaluasi
     const initialSubcriteria: Subcriteria[] = [];
     evaluationCriteria.forEach((criteria, i) => {
@@ -232,6 +275,9 @@ export class AhpComponent implements OnInit {
       );
     });
     this.subcriteria = initialSubcriteria;
+    this.criteria.forEach(() => {
+      this.showMatricesSubcriteria.push(false);
+    });
 
     // Muat bobot yang tersimpan dari localStorage
     const saved = localStorage.getItem('ahpWeights');
@@ -242,6 +288,63 @@ export class AhpComponent implements OnInit {
         console.error('Error loading saved weights:', error);
       }
     }
+  }
+
+  test(oldId: string, currentId: string) {
+    const oldValue: number[] = [];
+    const subA = this.getSubcriteriaForCriteria(oldId);
+    subA.forEach((sa, i) => {
+      const subB = this.getSlicedSubcriteria(
+        this.getSubcriteriaForCriteria(oldId),
+        i
+      );
+      subB.forEach((sb, j) => {
+        const value = this.getValueSub(oldId, sa.id, sb.id);
+        const selectedScale = this.scaleValues[value];
+        oldValue.push(selectedScale?.value || 1);
+      });
+    });
+
+    let index = 0;
+    const subAC = this.getSubcriteriaForCriteria(currentId);
+    subAC.forEach((sa, i) => {
+      const subBC = this.getSlicedSubcriteria(
+        this.getSubcriteriaForCriteria(currentId),
+        i
+      );
+      subBC.forEach((sb, j) => {
+        this.handleSubcriteriaComparisonChange(
+          currentId,
+          sa.id,
+          sb.id,
+          oldValue[index]
+        );
+        index++;
+      });
+    });
+  }
+
+  private calculateDerivedMatrices(): void {
+    // Perhitungan untuk "Tabel 3.6 Matriks Penjumlahan Setiap Baris"
+    this.summedMatrixForTable2 = this.results.pairwiseMatrix.map((row) =>
+      row.map((cell, colIndex) => cell * this.results.weights[colIndex])
+    );
+    this.rowSumsForTable2 = this.summedMatrixForTable2.map((row) =>
+      row.reduce((sum, cell) => sum + cell, 0)
+    );
+
+    // Penyiapan data untuk "Tabel 3.11 Perhitungan Rasio Konsistensi Kriteria"
+    // Catatan: Kode React tampaknya memiliki masalah di sini, memberikan array 1D ke komponen yang mengharapkan matriks 2D.
+    // Saya menyusunnya sebagai matriks 2D dengan satu kolom seperti yang dimaksud.
+    this.matrixForTable3 = this.results.sumMatrix.map((value) => [value]);
+  }
+
+  toggleMatrices(): void {
+    this.showMatrices = !this.showMatrices;
+  }
+
+  toggleMatricesSub(index: number): void {
+    this.showMatricesSubcriteria[index] = !this.showMatricesSubcriteria[index];
   }
 
   // --- Matrix Operations ---
