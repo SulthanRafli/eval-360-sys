@@ -10,6 +10,17 @@ import {
   calculateMultipleEmployeeScores,
   EmployeeAHPScore,
 } from '../../shared/utils/ahpCalculations';
+import {
+  Settings,
+  LucideAngularModule,
+  Calculator,
+  Trophy,
+  Medal,
+  Award,
+  Star,
+} from 'lucide-angular';
+import { Color, NgxChartsModule, ScaleType } from '@swimlane/ngx-charts';
+import { provideNoopAnimations } from '@angular/platform-browser/animations';
 
 // Interfaces
 interface SavedAHPWeights {
@@ -34,11 +45,17 @@ interface DetailedEmployeeScore extends EmployeeAHPScore {
 @Component({
   selector: 'app-ranking',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, NgxChartsModule],
   templateUrl: './ranking.component.html',
   styleUrls: ['./ranking.component.css'],
 })
 export class RankingComponent implements OnInit {
+  readonly Settings = Settings;
+  readonly Calculator = Calculator;
+  readonly Trophy = Trophy;
+  readonly Medal = Medal;
+  readonly Award = Award;
+  readonly Star = Star;
   // Component State
   selectedPeriod = '2024-Q1';
   viewMode: 'table' | 'chart' | 'detailed' = 'table';
@@ -57,6 +74,21 @@ export class RankingComponent implements OnInit {
   barChartView: [number, number] = [700, 400];
   pieChartView: [number, number] = [500, 400];
 
+  // Custom color scheme for the bar chart
+  barChartColorScheme: Color = {
+    name: 'employeeScores',
+    selectable: true,
+    group: ScaleType.Ordinal,
+    domain: ['#3B82F6'],
+  };
+
+  // Custom color scheme for the pie chart
+  pieChartColorScheme: Color = {
+    name: 'criteriaDistribution',
+    selectable: true,
+    group: ScaleType.Ordinal,
+    domain: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'],
+  };
   public evaluationCriteria = evaluationCriteria;
 
   constructor() {}
@@ -224,5 +256,42 @@ export class RankingComponent implements OnInit {
   exportResults(format: 'pdf' | 'excel'): void {
     console.log(`Exporting ranking results as ${format}`);
     // Actual export implementation would go here
+  }
+
+  getRankIcon(rank: number) {
+    switch (rank) {
+      case 1:
+        return Trophy;
+      case 2:
+        return Medal;
+      case 3:
+        return Award;
+      default:
+        return Star;
+    }
+  }
+
+  getRankClass(rank: number): string {
+    if (rank === 1) return 'text-yellow-500';
+    if (rank === 2) return 'text-gray-400';
+    if (rank === 3) return 'text-amber-600';
+    return 'text-gray-300';
+  }
+
+  initials(name: string): string {
+    const parts = name.split(' ');
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (
+      parts[0].charAt(0).toUpperCase() +
+      parts[parts.length - 1].charAt(0).toUpperCase()
+    );
+  }
+
+  formatPercentage(val: number): string {
+    return `${val.toFixed(1)}%`;
+  }
+
+  formatScore(val: number): string {
+    return val.toFixed(2);
   }
 }
