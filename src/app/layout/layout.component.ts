@@ -13,6 +13,7 @@ import {
   LucideAngularModule,
   Menu,
   PenTool,
+  Settings,
   User,
   Users,
 } from 'lucide-angular';
@@ -54,8 +55,9 @@ export class LayoutComponent {
       href: '/evaluations',
       icon: ClipboardPenLine,
     },
-    { name: 'AHP Setup', href: '/ahp', icon: Calculator },
     { name: 'Ranking', href: '/ranking', icon: Award },
+    { name: 'AHP Setup', href: '/ahp', icon: Calculator },
+    { name: 'Criteria Setup', href: '/criteria', icon: Settings },
   ];
 
   public logout() {

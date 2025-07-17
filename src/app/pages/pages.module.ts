@@ -10,6 +10,7 @@ import { RankingComponent } from './ranking/ranking.component';
 import { EmployeeCardComponent } from './employees/components/employee-card/employee-card.component';
 import { EmployeeFiltersComponent } from './employees/components/employee-filters/employee-filters.component';
 import { EmployeeFormModalComponent } from './employees/components/employee-form-modal/employee-form-modal.component';
+import { CriteriaComponent } from './criteria/criteria.component';
 
 @NgModule({
   imports: [
@@ -23,6 +24,7 @@ import { EmployeeFormModalComponent } from './employees/components/employee-form
     EvaluationsComponent,
     AhpComponent,
     RankingComponent,
+    CriteriaComponent,
   ],
 })
 export class PagesModule {}

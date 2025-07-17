@@ -332,6 +332,10 @@
             <input
               type="checkbox"
               (change)="test(criteria[i - 1].id, criterion.id)"
+              [disabled]="
+                getSubcriteriaForCriteria(criteria[i - 1].id).length !==
+                getSubcriteriaForCriteria(criterion.id).length
+              "
               value=""
               class="sr-only peer"
             />
