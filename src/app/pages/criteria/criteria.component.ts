@@ -1,28 +1,38 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-
-export interface Question {
-  id: string;
-  code: string;
-  text: string;
-  criteriaId: string;
-}
-
-export interface Criteria {
-  id: string;
-  code: string;
-  name: string;
-  questions: Question[];
-}
+import {
+  CircleDivide,
+  Database,
+  FileText,
+  LucideAngularModule,
+  Plus,
+  SquarePen,
+  Trash2,
+  TriangleAlert,
+  X,
+} from 'lucide-angular';
+import { CriteriaService } from '../../shared/services/criteria.service';
+import { Criteria, Question } from '../../shared/models/app.types';
 
 @Component({
   selector: 'app-criteria',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule],
   templateUrl: './criteria.component.html',
   styleUrl: './criteria.component.css',
 })
 export class CriteriaComponent implements OnInit {
+  readonly Plus = Plus;
+  readonly Database = Database;
+  readonly CircleDivide = CircleDivide;
+  readonly SquarePen = SquarePen;
+  readonly Trash2 = Trash2;
+  readonly FileText = FileText;
+  readonly X = X;
+  readonly TriangleAlert = TriangleAlert;
+
+  private criteriaService = inject(CriteriaService);
+
   criteria: Criteria[] = [];
   showCriteriaForm = false;
   showSubcriteriaForm = false;
@@ -107,7 +117,10 @@ export class CriteriaComponent implements OnInit {
   // Data operations
   loadCriteria(): void {
     // In a real app, this would be a service call
-    this.criteria = [...this.defaultCriteria];
+    this.criteriaService.getCriteria().subscribe((res) => {
+      this.criteria = res;
+    });
+    // this.criteria = [...this.defaultCriteria];
   }
 
   updateEvaluationCriteria(criteria: Criteria[]): void {
@@ -202,15 +215,13 @@ export class CriteriaComponent implements OnInit {
       this.updateEvaluationCriteria(updatedCriteria);
     } else {
       // Create new criteria
-      const newCriteria: Criteria = {
-        id: `C${Date.now()}`,
-        code: this.criteriaForm.code,
-        name: this.criteriaForm.name,
-        questions: [],
-      };
-      const updatedCriteria = [...this.criteria, newCriteria];
-      this.criteria = updatedCriteria;
-      this.updateEvaluationCriteria(updatedCriteria);
+      // const newCriteria: Criteria = {
+      //   code: this.criteriaForm.code,
+      //   name: this.criteriaForm.name,
+      // };
+      // const updatedCriteria = [...this.criteria, newCriteria];
+      // this.criteria = updatedCriteria;
+      // this.updateEvaluationCriteria(updatedCriteria);
     }
 
     this.showCriteriaForm = false;
