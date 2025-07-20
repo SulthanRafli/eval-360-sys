@@ -59,3 +59,50 @@ export interface AHPComparison {
   criteriaB: string;
   value: number;
 }
+
+export interface SubcriteriaComparison {
+  criteriaId: string;
+  subcriteriaA: string;
+  subcriteriaB: string;
+  value: number;
+}
+
+export interface Subcriteria {
+  id: string;
+  code: string;
+  name: string;
+  criteriaId: string;
+}
+
+export interface AhpResults {
+  pairwiseMatrix: number[][];
+  pairwiseSumMatrix: number[];
+  weightsMatrix: number[][];
+  sumWeightsMatrix: number[];
+  weights: number[];
+  priorityRatios: number[];
+  everyRowMatrix: number[][];
+  sumEveryRowMatrix: number[];
+  lambdaMax: number;
+  ci: number;
+  cr: number;
+  statusCr: string;
+}
+
+export interface AHPWeights {
+  id: string;
+  name: string;
+  weights: { [criteriaId: string]: number };
+  subcriteriaWeights?: {
+    [criteriaId: string]: { [subcriteriaId: string]: number };
+  };
+  consistencyRatio: number;
+  subcriteriaConsistencyRatios: { [criteriaId: string]: number };
+  createdAt: Date;
+  isActive: boolean;
+}
+
+export interface Header {
+  code: string;
+  name: string;
+}

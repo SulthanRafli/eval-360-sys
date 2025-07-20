@@ -1,57 +1,29 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { evaluationCriteria } from '../../shared/data/mock-data';
 import {
   Calculator,
   Eye,
   EyeClosed,
+  FileText,
   Info,
   LucideAngularModule,
+  Plus,
 } from 'lucide-angular';
 import { MatrixTableComponent } from './components/matrix-tables/matrix-tables.component';
-
-// Definisikan interface yang sama seperti di React
-interface AHPComparison {
-  criteriaA: string;
-  criteriaB: string;
-  value: number;
-}
-
-interface SubcriteriaComparison {
-  criteriaId: string;
-  subcriteriaA: string;
-  subcriteriaB: string;
-  value: number;
-}
-
-interface Subcriteria {
-  id: string;
-  code: string;
-  name: string;
-  criteriaId: string;
-  weight?: number;
-}
-
-interface SavedAHPWeights {
-  id: string;
-  name: string;
-  weights: { [criteriaId: string]: number };
-  subcriteriaWeights?: {
-    [criteriaId: string]: { [subcriteriaId: string]: number };
-  };
-  consistencyRatio: number;
-  subcriteriaConsistencyRatios: { [criteriaId: string]: number };
-  createdAt: Date;
-  isActive: boolean;
-}
-
-interface AhpResults {
-  pairwiseMatrix: number[][];
-  sumMatrix: number[];
-  weights: number[];
-  priorityRatios: number[];
-}
+import {
+  AHPComparison,
+  AhpResults,
+  AHPWeights,
+  Criteria,
+  Header,
+  Subcriteria,
+  SubcriteriaComparison,
+} from '../../shared/models/app.types';
+import { Subscription } from 'rxjs';
+import { AhpService } from '../../shared/services/ahp.service';
+import { CriteriaService } from '../../shared/services/criteria.service';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-ahp',
@@ -61,25 +33,53 @@ interface AhpResults {
     FormsModule,
     LucideAngularModule,
     MatrixTableComponent,
+    RouterModule,
   ],
   templateUrl: './ahp.component.html',
   styleUrls: ['./ahp.component.css'],
+  providers: [DatePipe],
 })
 export class AhpComponent implements OnInit {
+  // Injected Services
+  private criteriaService = inject(CriteriaService);
+  private ahpService = inject(AhpService);
+  private subscriptions = new Subscription();
+
+  // Icons
   readonly Info = Info;
   readonly Calculator = Calculator;
   readonly Eye = Eye;
   readonly EyeClosed = EyeClosed;
+  readonly FileText = FileText;
+  readonly Plus = Plus;
 
-  criteriaNames: string[] = []; // Contoh: ['Harga', 'Kualitas', 'Merek', 'Toko']
-  results!: AhpResults;
+  //Matrix
+  headerCriteria: Header[] = [];
+  results: AhpResults = {
+    pairwiseMatrix: [],
+    pairwiseSumMatrix: [],
+    weightsMatrix: [],
+    sumWeightsMatrix: [],
+    weights: [],
+    priorityRatios: [],
+    everyRowMatrix: [],
+    sumEveryRowMatrix: [],
+    lambdaMax: 0,
+    ci: 0,
+    cr: 0,
+    statusCr: '-',
+  };
+  resultsCriteria: AhpResults[] = [];
   showMatrices: boolean = false;
   showMatricesSubcriteria: boolean[] = [];
   summedMatrixForTable2: number[][] = [];
   rowSumsForTable2: number[] = [];
   matrixForTable3: number[][] = [];
 
+  // Component State
+  isLoading = true;
   currentStep = 1;
+  criteria: Criteria[] = [];
   comparisons: AHPComparison[] = [];
   subcriteriaComparisons: SubcriteriaComparison[] = [];
   weights: { [key: string]: number } = {};
@@ -88,17 +88,16 @@ export class AhpComponent implements OnInit {
   } = {};
   consistencyRatio = 0;
   subcriteriaConsistencyRatios: { [criteriaId: string]: number } = {};
+  savedWeights: AHPWeights[] = [];
+
+  // UI State
   showSaveModal = false;
   saveName = '';
-  savedWeights: SavedAHPWeights[] = [];
   expandedCriteria: { [key: string]: boolean } = {};
   subcriteria: Subcriteria[] = [];
-  showSubcriteriaModal = false;
-  selectedCriteriaForSub = '';
-  newSubcriteria = { name: '', code: '' };
 
-  criteria = evaluationCriteria;
-  scaleValues = [
+  // AHP Constants
+  readonly scaleValues = [
     {
       value: 1 / 9,
       label: '1/9',
@@ -197,9 +196,8 @@ export class AhpComponent implements OnInit {
       color: 'bg-purple-600',
     },
   ];
-  randomIndex = [0, 0, 0.52, 0.89, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49];
-
-  steps = [
+  readonly randomIndex = [0, 0, 0.52, 0.89, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49];
+  readonly steps = [
     {
       number: 1,
       title: 'Perbandingan Kriteria',
@@ -221,130 +219,78 @@ export class AhpComponent implements OnInit {
       description: 'Lihat hasil dan simpan bobot',
     },
   ];
-
-  constructor() {
-    this.criteriaNames = ['Nama K1', 'Nama K2', 'Nama K3'];
-    this.results = {
-      pairwiseMatrix: [
-        [1.0, 2.0, 5.0],
-        [0.5, 1.0, 3.0],
-        [0.2, 0.33, 1.0],
-      ],
-      sumMatrix: [1.7, 3.33, 9.0], // Ini seharusnya adalah jumlah per kolom
-      weights: [0.59, 0.3, 0.11],
-      priorityRatios: [0.61, 0.31, 0.12],
-    };
-  }
+  readonly defaultSubscriteria = [
+    {
+      code: 'SK',
+      name: 'Sangat Kurang',
+    },
+    {
+      code: 'K',
+      name: 'Kurang',
+    },
+    {
+      code: 'C',
+      name: 'Cukup',
+    },
+    {
+      code: 'B',
+      name: 'Baik',
+    },
+    {
+      code: 'SB',
+      name: 'Sangat Baik',
+    },
+  ];
 
   ngOnInit(): void {
-    this.calculateDerivedMatrices();
-    // Inisialisasi subkriteria dari data evaluasi
-    const initialSubcriteria: Subcriteria[] = [];
-    evaluationCriteria.forEach((criteria, i) => {
-      initialSubcriteria.push(
-        {
-          id: `sub-A${i}-${criteria.id}`,
-          code: 'SK',
-          name: 'Sangat Kurang',
-          criteriaId: criteria.id,
-        },
-        {
-          id: `sub-B${i}-${criteria.id}`,
-          code: 'K',
-          name: 'Kurang',
-          criteriaId: criteria.id,
-        },
-        {
-          id: `sub-C${i}-${criteria.id}`,
-          code: 'C',
-          name: 'Cukup',
-          criteriaId: criteria.id,
-        },
-        {
-          id: `sub-D${i}-${criteria.id}`,
-          code: 'B',
-          name: 'Baik',
-          criteriaId: criteria.id,
-        },
-        {
-          id: `sub-E${i}-${criteria.id}`,
-          code: 'SB',
-          name: 'Sangat Baik',
-          criteriaId: criteria.id,
-        }
-      );
-    });
-    this.subcriteria = initialSubcriteria;
-    this.criteria.forEach(() => {
-      this.showMatricesSubcriteria.push(false);
-    });
-
-    // Muat bobot yang tersimpan dari localStorage
-    const saved = localStorage.getItem('ahpWeights');
-    if (saved) {
-      try {
-        this.savedWeights = JSON.parse(saved);
-      } catch (error) {
-        console.error('Error loading saved weights:', error);
-      }
-    }
+    this.loadInitialData();
   }
 
-  test(oldId: string, currentId: string) {
-    const oldValue: number[] = [];
-    const subA = this.getSubcriteriaForCriteria(oldId);
-    subA.forEach((sa, i) => {
-      const subB = this.getSlicedSubcriteria(
-        this.getSubcriteriaForCriteria(oldId),
-        i
-      );
-      subB.forEach((sb, j) => {
-        const value = this.getValueSub(oldId, sa.id, sb.id);
-        const selectedScale = this.scaleValues[value];
-        oldValue.push(selectedScale?.value || 1);
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private loadInitialData(): void {
+    this.isLoading = true;
+    const criteriaSub = this.criteriaService
+      .getCriteria()
+      .subscribe((criteria) => {
+        this.criteria = criteria;
+        this.headerCriteria = criteria.map((val) => {
+          return {
+            code: val.code,
+            name: val.name,
+          };
+        });
+        this.isLoading = false;
+
+        const initialSubcriteria: Subcriteria[] = [];
+        this.criteria.forEach((criteria) => {
+          this.defaultSubscriteria.forEach((subcriteria) => {
+            initialSubcriteria.push({
+              id: `${criteria.id}-${subcriteria.code}`,
+              code: subcriteria.code,
+              name: subcriteria.name,
+              criteriaId: criteria.id,
+            });
+          });
+        });
+        this.subcriteria = initialSubcriteria;
       });
-    });
 
-    let index = 0;
-    const subAC = this.getSubcriteriaForCriteria(currentId);
-    subAC.forEach((sa, i) => {
-      const subBC = this.getSlicedSubcriteria(
-        this.getSubcriteriaForCriteria(currentId),
-        i
-      );
-      subBC.forEach((sb, j) => {
-        this.handleSubcriteriaComparisonChange(
-          currentId,
-          sa.id,
-          sb.id,
-          oldValue[index]
-        );
-        index++;
+    const weightsSub = this.ahpService
+      .getSavedWeights()
+      .subscribe((weights) => {
+        this.savedWeights = weights;
       });
-    });
+
+    this.subscriptions.add(criteriaSub);
+    this.subscriptions.add(weightsSub);
   }
 
-  private calculateDerivedMatrices(): void {
-    // Perhitungan untuk "Tabel 3.6 Matriks Penjumlahan Setiap Baris"
-    this.summedMatrixForTable2 = this.results.pairwiseMatrix.map((row) =>
-      row.map((cell, colIndex) => cell * this.results.weights[colIndex])
-    );
-    this.rowSumsForTable2 = this.summedMatrixForTable2.map((row) =>
-      row.reduce((sum, cell) => sum + cell, 0)
-    );
-
-    // Penyiapan data untuk "Tabel 3.11 Perhitungan Rasio Konsistensi Kriteria"
-    // Catatan: Kode React tampaknya memiliki masalah di sini, memberikan array 1D ke komponen yang mengharapkan matriks 2D.
-    // Saya menyusunnya sebagai matriks 2D dengan satu kolom seperti yang dimaksud.
-    this.matrixForTable3 = this.results.sumMatrix.map((value) => [value]);
-  }
-
-  toggleMatrices(): void {
-    this.showMatrices = !this.showMatrices;
-  }
-
-  toggleMatricesSub(index: number): void {
-    this.showMatricesSubcriteria[index] = !this.showMatricesSubcriteria[index];
+  formatCreatedAt(timestamp: any): Date {
+    const date = new Date(timestamp.seconds * 1000);
+    return date;
   }
 
   // --- Matrix Operations ---
@@ -412,14 +358,20 @@ export class AhpComponent implements OnInit {
     return matrix;
   }
 
-  calculateEigenVector(matrix: number[][]): number[] {
-    const n = matrix.length; // Number of rows
-    if (n === 0) return [];
+  calculateEigenVector(matrix: number[][]): {
+    weightsMatrix: number[][];
+    weights: number[];
+    columnSums: number[];
+    rowSums: number[];
+  } {
+    const n = matrix.length;
+    if (n === 0)
+      return { weightsMatrix: [], weights: [], columnSums: [], rowSums: [] };
 
-    const m = matrix[0].length; // Number of columns
-    if (m === 0) return [];
+    const m = matrix[0].length;
+    if (m === 0)
+      return { weightsMatrix: [], weights: [], columnSums: [], rowSums: [] };
 
-    // Calculate the sum of each column
     const columnSums = new Array(m).fill(0);
     for (let i = 0; i < n; i++) {
       for (let j = 0; j < m; j++) {
@@ -427,49 +379,112 @@ export class AhpComponent implements OnInit {
       }
     }
 
-    const weights = matrix.map((row) => {
+    const rowSums: number[] = [];
+    const weightsMatrix = Array(n)
+      .fill(null)
+      .map(() => Array(n).fill(1));
+    const weights = matrix.map((row, i) => {
       const rowSum = row.reduce((sum, val, index) => {
         const wi = val / columnSums[index];
+        weightsMatrix[i][index] = wi;
         return sum + wi;
       }, 0);
-
+      rowSums.push(rowSum);
       return rowSum / n;
     });
-    return weights;
+
+    return {
+      weightsMatrix,
+      weights,
+      columnSums,
+      rowSums,
+    };
   }
 
-  calculateConsistencyRatio(matrix: number[][], weights: number[]): number {
+  calculateConsistencyRatio(
+    matrix: number[][],
+    weights: number[]
+  ): {
+    matrixRow: number[][];
+    sumMatrixRow: number[];
+    priorityRatios: number[];
+    lambdaMax: number;
+    ci: number;
+    cr: number;
+  } {
     const n = matrix.length;
-    if (n <= 2) return 0;
+    if (n <= 2)
+      return {
+        matrixRow: [],
+        sumMatrixRow: [],
+        priorityRatios: [],
+        lambdaMax: 0,
+        ci: 0,
+        cr: 0,
+      };
 
-    const weightedSum = matrix.map((row, i) =>
-      row.reduce((sum, val, j) => sum + val * weights[j], 0)
-    );
+    const matrixRow = Array(n)
+      .fill(null)
+      .map(() => Array(n).fill(1));
+    const sumMatrixRow: number[] = [];
+    const priorityRatios: number[] = [];
+
+    const weightedSum = matrix.map((row, i) => {
+      const rowSum = row.reduce((sum, val, j) => {
+        matrixRow[i][j] = val * weights[j];
+        return sum + val * weights[j];
+      }, 0);
+      sumMatrixRow.push(rowSum);
+      return rowSum;
+    });
 
     const lambdaMax =
-      weightedSum.reduce((sum, val, i) => sum + val / weights[i], 0) / n;
+      weightedSum.reduce((sum, val, i) => {
+        priorityRatios.push(val / weights[i]);
+        return sum + val / weights[i];
+      }, 0) / n;
 
     const ci = (lambdaMax - n) / (n - 1);
     const ri = this.randomIndex[n - 1] || 1.49;
+    const cr = ci / ri;
 
-    console.log(ci);
-    console.log(ri);
-    console.log(ci / ri);
-    return ci / ri;
+    return {
+      matrixRow,
+      sumMatrixRow,
+      priorityRatios,
+      lambdaMax,
+      cr,
+      ci,
+    };
   }
 
   calculateWeights(): void {
     const matrix = this.createMatrix(this.comparisons, this.criteria);
     const eigenVector = this.calculateEigenVector(matrix);
-    const cr = this.calculateConsistencyRatio(matrix, eigenVector);
+    const result = this.calculateConsistencyRatio(matrix, eigenVector.weights);
+
+    this.results = {
+      pairwiseMatrix: matrix,
+      pairwiseSumMatrix: eigenVector.columnSums,
+      weightsMatrix: eigenVector.weightsMatrix,
+      sumWeightsMatrix: eigenVector.rowSums,
+      weights: eigenVector.weights,
+      priorityRatios: result.priorityRatios,
+      everyRowMatrix: result.matrixRow,
+      sumEveryRowMatrix: result.sumMatrixRow,
+      lambdaMax: result.lambdaMax,
+      cr: result.cr,
+      ci: result.ci,
+      statusCr: result.cr <= 0.1 ? 'Baik' : 'Buruk',
+    };
 
     const newWeights: { [key: string]: number } = {};
     this.criteria.forEach((criterion, index) => {
-      newWeights[criterion.id] = eigenVector[index] || 0;
+      newWeights[criterion.id] = eigenVector.weights[index] || 0;
     });
 
     this.weights = newWeights;
-    this.consistencyRatio = cr;
+    this.consistencyRatio = result.cr;
 
     const newSubcriteriaWeights: {
       [criteriaId: string]: { [subcriteriaId: string]: number };
@@ -487,21 +502,34 @@ export class AhpComponent implements OnInit {
           this.subcriteriaComparisons,
           criterion.id
         );
-        if (subMatrix.length > 0) {
-          const subEigenVector = this.calculateEigenVector(subMatrix);
-          const subCR = this.calculateConsistencyRatio(
-            subMatrix,
-            subEigenVector
-          );
+        const subEigenVector = this.calculateEigenVector(subMatrix);
+        const resultSub = this.calculateConsistencyRatio(
+          subMatrix,
+          subEigenVector.weights
+        );
 
-          newSubcriteriaWeights[criterion.id] = {};
-          criteriaSubcriteria.forEach((sub, index) => {
-            newSubcriteriaWeights[criterion.id][sub.id] =
-              subEigenVector[index] || 0;
-          });
+        this.resultsCriteria.push({
+          pairwiseMatrix: subMatrix,
+          pairwiseSumMatrix: subEigenVector.columnSums,
+          weightsMatrix: subEigenVector.weightsMatrix,
+          sumWeightsMatrix: subEigenVector.rowSums,
+          weights: subEigenVector.weights,
+          priorityRatios: resultSub.priorityRatios,
+          everyRowMatrix: resultSub.matrixRow,
+          sumEveryRowMatrix: resultSub.sumMatrixRow,
+          lambdaMax: resultSub.lambdaMax,
+          cr: resultSub.cr,
+          ci: resultSub.ci,
+          statusCr: resultSub.cr <= 0.1 ? 'Baik' : 'Buruk',
+        });
 
-          newSubcriteriaConsistencyRatios[criterion.id] = subCR;
-        }
+        newSubcriteriaWeights[criterion.id] = {};
+        criteriaSubcriteria.forEach((sub, index) => {
+          newSubcriteriaWeights[criterion.id][sub.id] =
+            subEigenVector.weights[index] || 0;
+        });
+
+        newSubcriteriaConsistencyRatios[criterion.id] = resultSub.cr;
       } else if (criteriaSubcriteria.length === 1) {
         newSubcriteriaWeights[criterion.id] = {};
         newSubcriteriaWeights[criterion.id][criteriaSubcriteria[0].id] = 1.0;
@@ -513,7 +541,6 @@ export class AhpComponent implements OnInit {
     this.subcriteriaConsistencyRatios = newSubcriteriaConsistencyRatios;
   }
 
-  // --- Event Handlers ---
   handleComparisonChange(
     criteriaA: string,
     criteriaB: string,
@@ -563,11 +590,10 @@ export class AhpComponent implements OnInit {
     this.subcriteriaConsistencyRatios = {};
   }
 
-  saveWeights(): void {
+  async saveWeights(): Promise<void> {
     if (!this.saveName.trim()) return;
 
-    const newSavedWeights: SavedAHPWeights = {
-      id: Date.now().toString(),
+    const newSavedWeights: Omit<AHPWeights, 'id'> = {
       name: this.saveName.trim(),
       weights: this.weights,
       subcriteriaWeights: this.subcriteriaWeights,
@@ -577,57 +603,46 @@ export class AhpComponent implements OnInit {
       isActive: false,
     };
 
-    this.savedWeights.push(newSavedWeights);
-    localStorage.setItem('ahpWeights', JSON.stringify(this.savedWeights));
-
-    this.showSaveModal = false;
-    this.saveName = '';
+    try {
+      await this.ahpService.addWeights(newSavedWeights);
+      this.showSaveModal = false;
+      this.saveName = '';
+    } catch (error) {
+      console.error('Error saving weights:', error);
+    }
   }
 
-  activateWeights(id: string): void {
-    this.savedWeights.forEach((w) => (w.isActive = w.id === id));
-    localStorage.setItem('ahpWeights', JSON.stringify(this.savedWeights));
+  async activateWeights(id: string): Promise<void> {
+    try {
+      await this.ahpService.activateWeights(id);
+    } catch (error) {
+      console.error('Error activating weights:', error);
+    }
   }
 
-  deleteWeights(id: string): void {
-    this.savedWeights = this.savedWeights.filter((w) => w.id !== id);
-    localStorage.setItem('ahpWeights', JSON.stringify(this.savedWeights));
+  async deleteWeights(id: string): Promise<void> {
+    try {
+      await this.ahpService.deleteWeights(id);
+    } catch (error) {
+      console.error('Error deleting weights:', error);
+    }
   }
 
-  addSubcriteria(): void {
-    if (
-      !this.newSubcriteria.name.trim() ||
-      !this.newSubcriteria.code.trim() ||
-      !this.selectedCriteriaForSub
-    )
-      return;
-
-    const newSub: Subcriteria = {
-      id: `sub-${Date.now()}`,
-      code: this.newSubcriteria.code.trim(),
-      name: this.newSubcriteria.name.trim(),
-      criteriaId: this.selectedCriteriaForSub,
-    };
-
-    this.subcriteria.push(newSub);
-    this.newSubcriteria = { name: '', code: '' };
-    this.showSubcriteriaModal = false;
-    this.selectedCriteriaForSub = '';
+  getSlicedCriteria(index: number): Criteria[] {
+    return this.criteria.slice(index + 1);
   }
 
-  removeSubcriteria(subcriteriaId: string): void {
-    this.subcriteria = this.subcriteria.filter((s) => s.id !== subcriteriaId);
-    this.subcriteriaComparisons = this.subcriteriaComparisons.filter(
-      (c) =>
-        c.subcriteriaA !== subcriteriaId && c.subcriteriaB !== subcriteriaId
-    );
+  getSlicedSubcriteria(
+    subcriteria: Subcriteria[],
+    index: number
+  ): Subcriteria[] {
+    return subcriteria.slice(index + 1);
   }
 
   toggleCriteriaExpansion(criteriaId: string): void {
     this.expandedCriteria[criteriaId] = !this.expandedCriteria[criteriaId];
   }
 
-  // --- Getter Functions for Template ---
   getComparisonValue(criteriaA: string, criteriaB: string): number {
     const comparison = this.comparisons.find(
       (c) =>
@@ -653,14 +668,6 @@ export class AhpComponent implements OnInit {
 
   getSubcriteriaForCriteria(criteriaId: string): Subcriteria[] {
     return this.subcriteria.filter((s) => s.criteriaId === criteriaId);
-  }
-
-  // Helper untuk mendapatkan slice di template
-  getSlicedSubcriteria(
-    subcriteria: Subcriteria[],
-    index: number
-  ): Subcriteria[] {
-    return subcriteria.slice(index + 1);
   }
 
   getSubWeight(criterionId: string, subId: string): number {
@@ -704,5 +711,47 @@ export class AhpComponent implements OnInit {
     const value = ev?.target?.value || 1;
     const selectedScale = this.scaleValues[parseInt(value)];
     return selectedScale?.value || 1;
+  }
+
+  getPreviousSubcriteriaValue(oldId: string, currentId: string) {
+    const oldValue: number[] = [];
+    const subA = this.getSubcriteriaForCriteria(oldId);
+    subA.forEach((sa, i) => {
+      const subB = this.getSlicedSubcriteria(
+        this.getSubcriteriaForCriteria(oldId),
+        i
+      );
+      subB.forEach((sb, j) => {
+        const value = this.getValueSub(oldId, sa.id, sb.id);
+        const selectedScale = this.scaleValues[value];
+        oldValue.push(selectedScale?.value || 1);
+      });
+    });
+
+    let index = 0;
+    const subAC = this.getSubcriteriaForCriteria(currentId);
+    subAC.forEach((sa, i) => {
+      const subBC = this.getSlicedSubcriteria(
+        this.getSubcriteriaForCriteria(currentId),
+        i
+      );
+      subBC.forEach((sb, j) => {
+        this.handleSubcriteriaComparisonChange(
+          currentId,
+          sa.id,
+          sb.id,
+          oldValue[index]
+        );
+        index++;
+      });
+    });
+  }
+
+  toggleMatrices(): void {
+    this.showMatrices = !this.showMatrices;
+  }
+
+  toggleMatricesSub(index: number): void {
+    this.showMatricesSubcriteria[index] = !this.showMatricesSubcriteria[index];
   }
 }

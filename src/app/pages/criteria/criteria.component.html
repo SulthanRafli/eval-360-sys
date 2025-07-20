@@ -8,7 +8,7 @@
         Master Data Kriteria
       </h2>
       <p class="mt-1 text-sm text-gray-500">
-        Kelola kriteria dan subkriteria evaluasi karyawan
+        Kelola kriteria dan pertanyaan evaluasi karyawan
       </p>
     </div>
     <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
@@ -16,7 +16,7 @@
         (click)="handleCreateCriteria()"
         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
       >
-        <lucide-angular class="w-5 h-5 mr-2" [img]="Plus"></lucide-angular>
+        <lucide-icon class="w-5 h-5 mr-2" [img]="Plus"></lucide-icon>
         Tambah Kriteria
       </button>
     </div>
@@ -27,10 +27,10 @@
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex items-center">
         <div class="flex-shrink-0">
-          <lucide-angular
+          <lucide-icon
             class="h-8 w-8 text-blue-600"
             [img]="Database"
-          ></lucide-angular>
+          ></lucide-icon>
         </div>
         <div class="ml-5 w-0 flex-1">
           <dl>
@@ -48,18 +48,18 @@
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex items-center">
         <div class="flex-shrink-0">
-          <lucide-angular
+          <lucide-icon
             class="h-8 w-8 text-green-600"
-            [img]="Database"
-          ></lucide-angular>
+            [img]="FileQuestionMark"
+          ></lucide-icon>
         </div>
         <div class="ml-5 w-0 flex-1">
           <dl>
             <dt class="text-sm font-medium text-gray-500 truncate">
-              Total Subkriteria
+              Total Pertanyaan
             </dt>
             <dd class="text-2xl font-semibold text-gray-900">
-              {{ totalSubcriteria }}
+              {{ totalQuestion }}
             </dd>
           </dl>
         </div>
@@ -69,10 +69,10 @@
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex items-center">
         <div class="flex-shrink-0">
-          <lucide-angular
+          <lucide-icon
             class="h-8 w-8 text-purple-600"
             [img]="CircleDivide"
-          ></lucide-angular>
+          ></lucide-icon>
         </div>
         <div class="ml-5 w-0 flex-1">
           <dl>
@@ -80,7 +80,7 @@
               Rata-rata per Kriteria
             </dt>
             <dd class="text-2xl font-semibold text-gray-900">
-              {{ avgSubcriteria }}
+              {{ avgQuestion }}
             </dd>
           </dl>
         </div>
@@ -90,10 +90,10 @@
     <div class="bg-white rounded-lg shadow p-6">
       <div class="flex items-center">
         <div class="flex-shrink-0">
-          <lucide-angular
+          <lucide-icon
             class="h-8 w-8 text-orange-600"
             [img]="Plus"
-          ></lucide-angular>
+          ></lucide-icon>
         </div>
         <div class="ml-5 w-0 flex-1">
           <dl>
@@ -102,10 +102,10 @@
             </dt>
             <dd class="mt-1">
               <button
-                (click)="handleCreateSubcriteria()"
+                (click)="handleCreateQuestion()"
                 class="text-sm text-orange-600 hover:text-orange-800 font-medium cursor-pointer"
               >
-                Tambah Subkriteria
+                Tambah Pertanyaan
               </button>
             </dd>
           </dl>
@@ -136,41 +136,35 @@
                 {{ criteriaItem.name }}
               </h3>
               <p class="text-sm text-gray-500">
-                {{ criteriaItem.questions.length }} subkriteria
+                {{ criteriaItem.questions.length }} pertanyaan
               </p>
             </div>
           </div>
           <div class="flex items-center space-x-2">
             <button
-              (click)="handleCreateSubcriteria(criteriaItem.id)"
+              (click)="handleCreateQuestion(criteriaItem.id)"
               class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
             >
-              <lucide-angular
-                class="w-3 h-3 mr-1"
-                [img]="Plus"
-              ></lucide-angular>
-              Subkriteria
+              <lucide-icon class="w-3 h-3 mr-1" [img]="Plus"></lucide-icon>
+              Pertanyaan
             </button>
             <button
               (click)="handleEditCriteria(criteriaItem)"
               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md cursor-pointer"
             >
-              <lucide-angular
-                class="w-5 h-5"
-                [img]="SquarePen"
-              ></lucide-angular>
+              <lucide-icon class="w-5 h-5" [img]="SquarePen"></lucide-icon>
             </button>
             <button
               (click)="handleDeleteCriteria(criteriaItem)"
               class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md cursor-pointer"
             >
-              <lucide-angular class="w-5 h-5" [img]="Trash2"></lucide-angular>
+              <lucide-icon class="w-5 h-5" [img]="Trash2"></lucide-icon>
             </button>
           </div>
         </div>
       </div>
 
-      <!-- Subcriteria List -->
+      <!-- Question List -->
       <div class="px-6 py-4">
         <div *ngIf="criteriaItem.questions.length > 0" class="space-y-3">
           <div
@@ -189,19 +183,16 @@
             </div>
             <div class="flex items-center space-x-1 ml-4">
               <button
-                (click)="handleEditSubcriteria(question)"
+                (click)="handleEditQuestion(question)"
                 class="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer"
               >
-                <lucide-angular
-                  class="w-4 h-4"
-                  [img]="SquarePen"
-                ></lucide-angular>
+                <lucide-icon class="w-4 h-4" [img]="SquarePen"></lucide-icon>
               </button>
               <button
-                (click)="handleDeleteSubcriteria(question)"
+                (click)="handleDeleteQuestion(question)"
                 class="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
               >
-                <lucide-angular class="w-4 h-4" [img]="Trash2"></lucide-angular>
+                <lucide-icon class="w-4 h-4" [img]="Trash2"></lucide-icon>
               </button>
             </div>
           </div>
@@ -211,26 +202,23 @@
           *ngIf="criteriaItem.questions.length === 0"
           class="text-center py-8"
         >
-          <lucide-angular
+          <lucide-icon
             class="mx-auto h-8 w-8 text-gray-400"
-            [img]="SquarePen"
-          ></lucide-angular>
+            [img]="FileText"
+          ></lucide-icon>
           <h3 class="mt-2 text-sm font-medium text-gray-900">
-            Belum ada subkriteria
+            Belum ada pertanyaan
           </h3>
           <p class="mt-1 text-sm text-gray-500">
-            Tambahkan subkriteria untuk kriteria ini.
+            Tambahkan pertanyaan untuk kriteria ini.
           </p>
           <div class="mt-4">
             <button
-              (click)="handleCreateSubcriteria(criteriaItem.id)"
+              (click)="handleCreateQuestion(criteriaItem.id)"
               class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
             >
-              <lucide-angular
-                class="w-4 h-4 mr-2"
-                [img]="Plus"
-              ></lucide-angular>
-              Tambah Subkriteria
+              <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
+              Tambah Pertanyaan
             </button>
           </div>
         </div>
@@ -240,10 +228,10 @@
 
   <!-- Empty State -->
   <div *ngIf="criteria.length === 0" class="text-center py-12">
-    <lucide-angular
+    <lucide-icon
       class="mx-auto h-12 w-12 text-gray-400"
       [img]="FileText"
-    ></lucide-angular>
+    ></lucide-icon>
     <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada kriteria</h3>
     <p class="mt-1 text-sm text-gray-500">
       Mulai dengan menambahkan kriteria evaluasi pertama.
@@ -253,7 +241,7 @@
         (click)="handleCreateCriteria()"
         class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
       >
-        <lucide-angular class="w-4 h-4 mr-2" [img]="Plus"></lucide-angular>
+        <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
         Tambah Kriteria
       </button>
     </div>
@@ -279,7 +267,7 @@
           (click)="showCriteriaForm = false"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
-          <lucide-angular class="w-6 h-6" [img]="X"></lucide-angular>
+          <lucide-icon class="w-6 h-6" [img]="X"></lucide-icon>
         </button>
       </div>
       <div class="p-6">
@@ -290,7 +278,7 @@
             ><input
               type="text"
               [(ngModel)]="criteriaForm.code"
-              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
               [class.border-red-300]="errors['code']"
               [class.border-gray-300]="!errors['code']"
               placeholder="C1, C2, dst."
@@ -305,7 +293,7 @@
             ><input
               type="text"
               [(ngModel)]="criteriaForm.name"
-              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
               [class.border-red-300]="errors['name']"
               [class.border-gray-300]="!errors['name']"
               placeholder="Nama kriteria evaluasi"
@@ -335,27 +323,25 @@
   </div>
 
   <div
-    *ngIf="showSubcriteriaForm"
+    *ngIf="showQuestionForm"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
   >
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-      (click)="showSubcriteriaForm = false"
+      (click)="showQuestionForm = false"
     ></div>
     <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl">
       <div
         class="flex items-center justify-between p-6 border-b border-gray-200"
       >
         <h3 class="text-lg font-medium text-gray-900">
-          {{
-            editingSubcriteria ? "Edit Subkriteria" : "Tambah Subkriteria Baru"
-          }}
+          {{ editingQuestion ? "Edit Pertanyaan" : "Tambah Pertanyaan Baru" }}
         </h3>
         <button
-          (click)="showSubcriteriaForm = false"
+          (click)="showQuestionForm = false"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
-          <lucide-angular class="w-6 h-6" [img]="X"></lucide-angular>
+          <lucide-icon class="w-6 h-6" [img]="X"></lucide-icon>
         </button>
       </div>
       <div class="p-6">
@@ -363,11 +349,11 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1"
-                >Kode Subkriteria *</label
+                >Kode Pertanyaan *</label
               ><input
                 type="text"
                 [(ngModel)]="subcriteriaForm.code"
-                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
                 [class.border-red-300]="errors['subCode']"
                 [class.border-gray-300]="!errors['subCode']"
                 placeholder="P1, P2, dst."
@@ -401,14 +387,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Teks Subkriteria *</label
+              >Pertanyaan *</label
             ><textarea
               [(ngModel)]="subcriteriaForm.text"
               rows="3"
-              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
               [class.border-red-300]="errors['subText']"
               [class.border-gray-300]="!errors['subText']"
-              placeholder="Deskripsi lengkap subkriteria evaluasi..."
+              placeholder="Deskripsi pertanyaan evaluasi..."
             ></textarea>
             <p *ngIf="errors['subText']" class="mt-1 text-sm text-red-600">
               {{ errors["subText"] }}
@@ -420,15 +406,15 @@
         class="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50"
       >
         <button
-          (click)="showSubcriteriaForm = false"
+          (click)="showQuestionForm = false"
           class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
         >
           Batal</button
         ><button
-          (click)="handleSaveSubcriteria()"
+          (click)="handleSaveQuestion()"
           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
         >
-          {{ editingSubcriteria ? "Update" : "Simpan" }}
+          {{ editingQuestion ? "Update" : "Simpan" }}
         </button>
       </div>
     </div>
@@ -448,10 +434,10 @@
           <div
             class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100"
           >
-            <lucide-angular
+            <lucide-icon
               class="h-6 w-6 text-red-600"
               [img]="TriangleAlert"
-            ></lucide-angular>
+            ></lucide-icon>
           </div>
           <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
             <h3 class="text-lg leading-6 font-medium text-gray-900">
@@ -461,11 +447,11 @@
               <p class="text-sm text-gray-500">
                 Apakah Anda yakin ingin menghapus
                 {{
-                  itemToDelete.type === "criteria" ? "kriteria" : "subkriteria"
+                  itemToDelete.type === "criteria" ? "kriteria" : "pertanyaan"
                 }}
                 ini?
                 <span *ngIf="itemToDelete.type === 'criteria'"
-                  >Semua subkriteria di dalamnya juga akan terhapus.</span
+                  >Semua pertanyaan di dalamnya juga akan terhapus.</span
                 >
               </p>
             </div>

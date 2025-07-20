@@ -1,5 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
+import { Header } from '../../../../shared/models/app.types';
 
 @Component({
   selector: 'app-matrix-tables',
@@ -11,7 +12,8 @@ export class MatrixTableComponent {
   // @Input() decorators mark these properties as inputs from a parent component
   @Input() title: string = '';
   @Input() matrix: number[][] = [];
-  @Input() headers: string[] = [];
+  @Input() headers: Header[] = [];
+  @Input() showHeader: boolean = true;
 
   @Input() showSum: boolean = false;
   @Input() sumValues?: number[];
@@ -21,6 +23,9 @@ export class MatrixTableComponent {
 
   @Input() showRatio: boolean = false;
   @Input() ratioValues?: number[];
+
+  @Input() showColSum: boolean = false;
+  @Input() sumColValues?: number[];
 
   /**
    * Calculates the total sum of ratio values for the footer row.
@@ -38,7 +43,8 @@ export class MatrixTableComponent {
    * @returns The calculated colspan value.
    */
   getColspan(): number {
-    let colspan = this.headers.length;
+    let colspan = 0;
+    if (this.showHeader) this.headers.length;
     if (this.showSum) colspan++;
     if (this.showPriority) colspan++;
     return colspan;

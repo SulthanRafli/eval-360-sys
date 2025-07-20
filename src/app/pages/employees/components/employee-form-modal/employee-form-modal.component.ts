@@ -7,6 +7,7 @@ import {
   SimpleChanges,
   inject,
   computed,
+  Signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -16,6 +17,7 @@ import {
   Validators,
   FormArray,
   FormControl,
+  FormsModule,
 } from '@angular/forms';
 import { Employee } from '../../../../shared/models/app.types';
 import { Info, LucideAngularModule, X } from 'lucide-angular';
@@ -23,7 +25,12 @@ import { Info, LucideAngularModule, X } from 'lucide-angular';
 @Component({
   selector: 'app-employee-form-modal',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    LucideAngularModule,
+    FormsModule,
+  ],
   templateUrl: './employee-form-modal.component.html',
 })
 export class EmployeeFormModalComponent implements OnChanges {
@@ -33,14 +40,13 @@ export class EmployeeFormModalComponent implements OnChanges {
   @Input() isOpen: boolean = false;
   @Input() mode: 'create' | 'edit' | 'view' = 'view';
   @Input() employee: Employee | null = null;
-  @Input() allEmployees: Employee[] = [];
+  @Input({ required: true }) allEmployees!: Signal<Employee[]>;
 
   @Output() closeModal = new EventEmitter<void>();
   @Output() save = new EventEmitter<Partial<Employee>>();
 
   private fb = inject(FormBuilder);
   employeeForm: FormGroup;
-
   // Static data for dropdowns
   positions = [
     'Frontend Developer',
@@ -54,7 +60,7 @@ export class EmployeeFormModalComponent implements OnChanges {
 
   // Derived data for relationship dropdowns
   availableEmployees = computed(() =>
-    this.allEmployees.filter((e) => e.id !== this.employee?.id)
+    this.allEmployees().filter((e) => e.id !== this.employee?.id)
   );
   availableSupervisors = computed(() =>
     this.availableEmployees().filter((e) => e.level === 'senior')

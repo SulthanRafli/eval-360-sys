@@ -11,12 +11,14 @@
           >
             Kriteria
           </th>
-          <th
-            *ngFor="let header of headers; let i = index"
-            class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-          >
-            C{{ i + 1 }}
-          </th>
+          <ng-container *ngIf="showHeader">
+            <th
+              *ngFor="let header of headers"
+              class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+            >
+              {{ header.code }}
+            </th>
+          </ng-container>
           <th
             *ngIf="showSum"
             class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
@@ -39,32 +41,48 @@
       </thead>
       <tbody class="bg-white divide-y divide-gray-200">
         <tr
-          *ngFor="let row of matrix; let rowIndex = index"
+          *ngFor="let row of headers; let rowIndex = index"
           class="hover:bg-gray-50"
         >
           <td
             class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
           >
-            {{ headers[rowIndex] }}
+            {{ row.name }}
           </td>
           <td
-            *ngFor="let cell of row"
+            *ngFor="let cell of matrix[rowIndex]"
             class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
           >
             {{ cell | number : "1.2-2" }}
           </td>
-          <td
-            *ngIf="showSum && sumValues"
-            class="px-3 py-2 text-center text-sm font-medium text-gray-900 border-r border-gray-200"
-          >
-            {{ sumValues[rowIndex] | number : "1.2-2" }}
-          </td>
-          <td
-            *ngIf="showPriority && priorityValues"
-            class="px-3 py-2 text-center text-sm font-medium text-blue-600 border-r border-gray-200"
-          >
-            {{ priorityValues[rowIndex] | number : "1.2-2" }}
-          </td>
+          <ng-container *ngIf="showRatio; else hideRatio">
+            <td
+              *ngIf="showPriority && priorityValues"
+              class="px-3 py-2 text-center text-sm font-medium text-blue-600 border-r border-gray-200"
+            >
+              {{ priorityValues[rowIndex] | number : "1.2-2" }}
+            </td>
+            <td
+              *ngIf="showSum && sumValues"
+              class="px-3 py-2 text-center text-sm font-medium text-gray-900 border-r border-gray-200"
+            >
+              {{ sumValues[rowIndex] | number : "1.2-2" }}
+            </td>
+          </ng-container>
+          <ng-template #hideRatio>
+            <td
+              *ngIf="showSum && sumValues"
+              class="px-3 py-2 text-center text-sm font-medium text-gray-900 border-r border-gray-200"
+            >
+              {{ sumValues[rowIndex] | number : "1.2-2" }}
+            </td>
+            <td
+              *ngIf="showPriority && priorityValues"
+              class="px-3 py-2 text-center text-sm font-medium text-blue-600 border-r border-gray-200"
+            >
+              {{ priorityValues[rowIndex] | number : "1.2-2" }}
+            </td>
+          </ng-template>
           <td
             *ngIf="showRatio && ratioValues"
             class="px-3 py-2 text-center text-sm font-medium text-purple-600"
@@ -87,6 +105,21 @@
           </td>
         </tr>
       </tbody>
+      <ng-container *ngIf="showColSum && sumColValues">
+        <tfoot class="border border-t border-gray-200">
+          <td
+            class="px-3 py-2 text-sm font-bold text-gray-900 border-r border-gray-200"
+          >
+            Jumlah
+          </td>
+          <td
+            *ngFor="let val of sumColValues"
+            class="px-3 py-2 text-center text-sm font-bold text-gray-900 border-r border-gray-200"
+          >
+            {{ val | number : "1.2-2" }}
+          </td>
+        </tfoot>
+      </ng-container>
     </table>
   </div>
 </div>

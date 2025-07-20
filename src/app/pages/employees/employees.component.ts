@@ -10,6 +10,7 @@ import { EmployeeFormModalComponent } from './components/employee-form-modal/emp
 import { Employee } from '../../shared/models/app.types';
 import { mockEmployees } from '../../shared/data/mock-data';
 import { Plus, LucideAngularModule, Funnel, Search } from 'lucide-angular';
+import { EmployeeService } from '../../shared/services/employee.service';
 
 @Component({
   selector: 'app-employees',
@@ -31,9 +32,11 @@ export class EmployeesComponent {
   readonly Search = Search;
 
   private fb = inject(FormBuilder);
+  private employeeService = inject(EmployeeService);
 
   // --- STATE MANAGEMENT ---
-  public allEmployees = signal<Employee[]>(mockEmployees);
+  private allEmployees$ = this.employeeService.getEmployees();
+  public allEmployees = toSignal(this.allEmployees$, { initialValue: [] });
 
   filterForm = this.fb.group({
     search: [''],
@@ -154,12 +157,14 @@ export class EmployeesComponent {
     this.employeeToDelete.set(null);
   }
 
-  onDeleteModalConfirm() {
+  async onDeleteModalConfirm() {
     const employee = this.employeeToDelete();
     if (employee) {
-      this.allEmployees.update((current) =>
-        current.filter((e) => e.id !== employee.id)
-      );
+      try {
+        await this.employeeService.deleteEmployee(employee.id);
+      } catch (error) {
+        console.error('Error deleting employee:', error);
+      }
     }
     this.onDeleteModalClose();
   }
@@ -169,26 +174,27 @@ export class EmployeesComponent {
     this.selectedEmployee.set(null);
   }
 
-  onSaveEmployee(employeeData: Partial<Employee>) {
-    if (this.formMode() === 'create') {
-      const newEmployee: Employee = {
-        id: `new-${Date.now()}`,
-        name: employeeData.name!,
-        email: employeeData.email!,
-        position: employeeData.position!,
-        department: employeeData.department!,
-        status: 'Active',
-        level: employeeData.level!,
-        supervisor: employeeData.supervisor,
-        teammates: employeeData.teammates || [],
-        subordinates: employeeData.subordinates || [],
-      };
-      this.allEmployees.update((current) => [...current, newEmployee]);
-    } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
-      const updatedEmployee = { ...this.selectedEmployee()!, ...employeeData };
-      this.allEmployees.update((current) =>
-        current.map((e) => (e.id === updatedEmployee.id ? updatedEmployee : e))
-      );
+  async onSaveEmployee(employeeData: Partial<Employee>) {
+    try {
+      if (this.formMode() === 'create') {
+        const newEmployee: Omit<Employee, 'id'> = {
+          name: employeeData.name!,
+          email: employeeData.email!,
+          position: employeeData.position!,
+          department: employeeData.department!,
+          status: 'Active',
+          level: employeeData.level!,
+          supervisor: employeeData.supervisor,
+          teammates: employeeData.teammates || [],
+          subordinates: employeeData.subordinates || [],
+        };
+        await this.employeeService.addEmployee(newEmployee);
+      } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
+        const employeeId = this.selectedEmployee()!.id;
+        await this.employeeService.updateEmployee(employeeId, employeeData);
+      }
+    } catch (error) {
+      console.error('Error saving employee:', error);
     }
     this.onFormModalClose();
   }
