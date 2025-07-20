@@ -18,8 +18,8 @@
         Reset
       </button>
       <button
-        *ngIf="currentStep === 4 && (weights | keyvalue).length > 0"
-        (click)="showSaveModal = true"
+        *ngIf="currentStep() === 4 && (weights() | keyvalue).length > 0"
+        (click)="showSaveModal.set(true)"
         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
       >
         Simpan Bobot
@@ -27,14 +27,14 @@
     </div>
   </div>
 
-  <div *ngIf="savedWeights.length > 0" class="bg-white shadow rounded-lg">
+  <div *ngIf="savedWeights().length > 0" class="bg-white shadow rounded-lg">
     <div class="px-6 py-4 border-b border-gray-200">
       <h3 class="text-lg font-medium text-gray-900">Bobot Tersimpan</h3>
     </div>
     <div class="p-6">
       <div class="space-y-4">
         <div
-          *ngFor="let saved of savedWeights"
+          *ngFor="let saved of savedWeights()"
           class="flex items-center justify-between p-4 border border-gray-200 rounded-lg"
         >
           <div class="flex-1">
@@ -79,18 +79,18 @@
       >
         <button
           *ngFor="let step of steps"
-          (click)="currentStep = step.number"
+          (click)="currentStep.set(step.number)"
           [ngClass]="{
             'text-blue-600 border-b-2 border-blue-600 pb-2':
-              currentStep === step.number,
-            'text-gray-500 hover:text-gray-700': currentStep !== step.number
+              currentStep() === step.number,
+            'text-gray-500 hover:text-gray-700': currentStep() !== step.number
           }"
           class="flex items-center space-x-3 text-sm font-medium transition-colors duration-200 cursor-pointer"
         >
           <span
             [ngClass]="{
-              'bg-blue-600 text-white': currentStep === step.number,
-              'bg-gray-200 text-gray-600': currentStep !== step.number
+              'bg-blue-600 text-white': currentStep() === step.number,
+              'bg-gray-200 text-gray-600': currentStep() !== step.number
             }"
             class="flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold"
           >
@@ -105,7 +105,7 @@
     </div>
   </div>
 
-  <div *ngIf="currentStep === 1" class="space-y-6">
+  <div *ngIf="currentStep() === 1" class="space-y-6">
     <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
       <div class="flex items-center">
         <lucide-angular [img]="Info" class="h-6 w-6 text-blue-600" />
@@ -129,7 +129,7 @@
       </div>
       <div class="p-6">
         <div class="space-y-6">
-          <div *ngIf="criteria.length === 0" class="text-center py-8">
+          <div *ngIf="criteria().length === 0" class="text-center py-8">
             <lucide-icon
               class="mx-auto h-8 w-8 text-gray-400"
               [img]="FileText"
@@ -139,7 +139,7 @@
             </h3>
             <div class="mt-4">
               <a
-                [routerLink]="['/criteria']"
+                [routerLink]="['/criteria()']"
                 class="button inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
               >
                 <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
@@ -147,9 +147,9 @@
               </a>
             </div>
           </div>
-          <ng-container *ngFor="let criteriaA of criteria; let i = index">
+          <ng-container *ngFor="let criteriaA of criteria(); let i = index">
             <div
-              *ngFor="let criteriaB of criteria.slice(i + 1)"
+              *ngFor="let criteriaB of criteria().slice(i + 1)"
               class="border border-gray-200 rounded-lg p-4"
             >
               <div class="flex items-center justify-between mb-4">
@@ -280,7 +280,7 @@
     </div>
   </div>
 
-  <div *ngIf="currentStep === 2" class="space-y-6">
+  <div *ngIf="currentStep() === 2" class="space-y-6">
     <div class="bg-green-50 border border-green-200 rounded-lg p-4">
       <div class="flex items-center">
         <lucide-angular [img]="Info" class="h-6 w-6 text-green-600" />
@@ -305,7 +305,7 @@
       </div>
       <div class="p-6">
         <div class="space-y-4">
-          <div *ngIf="criteria.length === 0" class="text-center py-8">
+          <div *ngIf="criteria().length === 0" class="text-center py-8">
             <lucide-icon
               class="mx-auto h-8 w-8 text-gray-400"
               [img]="FileText"
@@ -315,7 +315,7 @@
             </h3>
             <div class="mt-4">
               <a
-                [routerLink]="['/criteria']"
+                [routerLink]="['/criteria()']"
                 class="button inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
               >
                 <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
@@ -324,7 +324,7 @@
             </div>
           </div>
           <div
-            *ngFor="let criterion of criteria"
+            *ngFor="let criterion of criteria()"
             class="border border-gray-200 rounded-lg"
           >
             <div
@@ -346,7 +346,7 @@
               </div>
             </div>
             <div
-              *ngIf="expandedCriteria[criterion.id]"
+              *ngIf="expandedCriteria()[criterion.id]"
               class="border-t border-gray-200 p-4 bg-gray-50"
             >
               <div class="space-y-3">
@@ -368,7 +368,7 @@
     </div>
   </div>
 
-  <div *ngIf="currentStep === 3" class="space-y-6">
+  <div *ngIf="currentStep() === 3" class="space-y-6">
     <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
       <div class="flex items-center">
         <lucide-angular [img]="Info" class="h-6 w-6 text-purple-600" />
@@ -385,7 +385,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="criteria.length === 0" class="bg-white shadow rounded-lg">
+    <div *ngIf="criteria().length === 0" class="bg-white shadow rounded-lg">
       <div class="text-center py-8">
         <lucide-icon
           class="mx-auto h-8 w-8 text-gray-400"
@@ -396,7 +396,7 @@
         </h3>
         <div class="mt-4">
           <a
-            [routerLink]="['/criteria']"
+            [routerLink]="['/criteria()']"
             class="button inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
           >
             <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
@@ -407,7 +407,7 @@
     </div>
 
     <div
-      *ngFor="let criterion of criteria; let i = index"
+      *ngFor="let criterion of criteria(); let i = index"
       class="bg-white shadow rounded-lg"
     >
       <div
@@ -429,10 +429,10 @@
             <input
               type="checkbox"
               (change)="
-                getPreviousSubcriteriaValue(criteria[i - 1].id, criterion.id)
+                getPreviousSubcriteriaValue(criteria()[i - 1].id, criterion.id)
               "
               [disabled]="
-                getSubcriteriaForCriteria(criteria[i - 1].id).length !==
+                getSubcriteriaForCriteria(criteria()[i - 1].id).length !==
                 getSubcriteriaForCriteria(criterion.id).length
               "
               value=""
@@ -622,7 +622,7 @@
     </div>
   </div>
 
-  <div *ngIf="currentStep === 4" class="space-y-6">
+  <div *ngIf="currentStep() === 4" class="space-y-6">
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
       <div class="flex items-center">
         <lucide-angular [img]="Calculator" class="h-6 w-6 text-yellow-600" />
@@ -639,7 +639,7 @@
         </div>
       </div>
     </div>
-    <div *ngIf="criteria.length === 0" class="bg-white shadow rounded-lg">
+    <div *ngIf="criteria().length === 0" class="bg-white shadow rounded-lg">
       <div class="text-center py-8">
         <lucide-icon
           class="mx-auto h-8 w-8 text-gray-400"
@@ -650,7 +650,7 @@
         </h3>
         <div class="mt-4">
           <a
-            [routerLink]="['/criteria']"
+            [routerLink]="['/criteria()']"
             class="button inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 cursor-pointer"
           >
             <lucide-icon class="w-4 h-4 mr-2" [img]="Plus"></lucide-icon>
@@ -659,21 +659,21 @@
         </div>
       </div>
     </div>
-    <ng-container *ngIf="criteria.length !== 0">
+    <ng-container *ngIf="criteria().length !== 0">
       <div class="bg-white shadow rounded-lg">
         <div class="px-6 py-4 border-b border-gray-200">
           <div class="flex justify-between">
             <h3 class="text-lg font-medium text-gray-900">Uji Konsistensi</h3>
             <button
               (click)="toggleMatrices()"
-              *ngIf="consistencyRatio"
+              *ngIf="consistencyRatio()"
               class="flex items-center px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer"
             >
               <lucide-icon
-                [img]="showMatrices ? EyeClosed : Eye"
+                [img]="showMatrices() ? EyeClosed : Eye"
                 class="w-6 h-6 mr-2"
               />
-              {{ showMatrices ? "Hide" : "Show" }} Detailed
+              {{ showMatrices() ? "Hide" : "Show" }} Detailed
             </button>
           </div>
         </div>
@@ -684,20 +684,22 @@
               <div
                 class="text-2xl font-bold mb-2"
                 [ngClass]="
-                  consistencyRatio <= 0.1 ? 'text-green-600' : 'text-red-600'
+                  consistencyRatio() <= 0.1 ? 'text-green-600' : 'text-red-600'
                 "
               >
-                {{ consistencyRatio.toFixed(3) }}
+                {{ consistencyRatio().toFixed(3) }}
               </div>
               <div class="flex items-center justify-center">
                 <span
                   class="text-sm"
                   [ngClass]="
-                    consistencyRatio <= 0.1 ? 'text-green-600' : 'text-red-600'
+                    consistencyRatio() <= 0.1
+                      ? 'text-green-600'
+                      : 'text-red-600'
                   "
                 >
                   {{
-                    consistencyRatio <= 0.1 ? "Konsisten" : "Tidak Konsisten"
+                    consistencyRatio() <= 0.1 ? "Konsisten" : "Tidak Konsisten"
                   }}
                 </span>
               </div>
@@ -705,7 +707,7 @@
             <div class="space-y-3">
               <h4 class="font-medium text-gray-900">Subkriteria</h4>
               <div
-                *ngFor="let criterion of criteria"
+                *ngFor="let criterion of criteria()"
                 class="flex items-center justify-between p-3 bg-gray-50 rounded"
               >
                 <span class="text-sm text-gray-700">{{ criterion.name }}</span>
@@ -713,7 +715,7 @@
                   <span
                     class="text-sm font-medium mr-2"
                     [ngClass]="
-                      (subcriteriaConsistencyRatios[criterion.id] || 0) <= 0.1
+                      (subcriteriaConsistencyRatios()[criterion.id] || 0) <= 0.1
                         ? 'text-green-600'
                         : 'text-red-600'
                     "
@@ -722,7 +724,7 @@
                       getSubcriteriaForCriteria(criterion.id).length <= 1
                         ? "N/A"
                         : (
-                            subcriteriaConsistencyRatios[criterion.id] || 0
+                            subcriteriaConsistencyRatios()[criterion.id] || 0
                           ).toFixed(3)
                     }}
                   </span>
@@ -731,13 +733,13 @@
             </div>
           </div>
         </div>
-        <div *ngIf="showMatrices" class="space-y-6 px-6">
+        <div *ngIf="showMatrices()" class="space-y-6 px-6">
           <app-matrix-tables
             title="Matriks Berpasangan"
-            [matrix]="results.pairwiseMatrix"
-            [headers]="headerCriteria"
+            [matrix]="results().pairwiseMatrix"
+            [headers]="headerCriteria()"
             [showColSum]="true"
-            [sumColValues]="results.pairwiseSumMatrix"
+            [sumColValues]="results().pairwiseSumMatrix"
             [showSum]="false"
             [showPriority]="false"
           >
@@ -745,34 +747,34 @@
           <br />
           <app-matrix-tables
             title="Matriks Nilai Kriteria"
-            [matrix]="results.weightsMatrix"
-            [headers]="headerCriteria"
+            [matrix]="results().weightsMatrix"
+            [headers]="headerCriteria()"
             [showSum]="true"
-            [sumValues]="results.sumWeightsMatrix"
+            [sumValues]="results().sumWeightsMatrix"
             [showPriority]="true"
-            [priorityValues]="results.weights"
+            [priorityValues]="results().weights"
           >
           </app-matrix-tables>
           <br />
           <app-matrix-tables
             title="Matriks Penjumlahan Setiap Baris"
-            [matrix]="results.everyRowMatrix"
-            [headers]="headerCriteria"
+            [matrix]="results().everyRowMatrix"
+            [headers]="headerCriteria()"
             [showSum]="true"
-            [sumValues]="results.sumEveryRowMatrix"
+            [sumValues]="results().sumEveryRowMatrix"
           >
           </app-matrix-tables>
           <br />
           <app-matrix-tables
             title="Perhitungan Rasio Konsistensi Kriteria"
             [showHeader]="false"
-            [headers]="headerCriteria"
+            [headers]="headerCriteria()"
             [showPriority]="true"
-            [priorityValues]="results.sumEveryRowMatrix"
+            [priorityValues]="results().sumEveryRowMatrix"
             [showSum]="true"
-            [sumValues]="results.weights"
+            [sumValues]="results().weights"
             [showRatio]="true"
-            [ratioValues]="results.priorityRatios"
+            [ratioValues]="results().priorityRatios"
           >
           </app-matrix-tables>
           <br />
@@ -787,7 +789,7 @@
                 class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 text-center"
               >
                 <div class="text-2xl font-bold text-blue-600 mb-2">
-                  {{ results.lambdaMax | number : "1.2-2" }}
+                  {{ results().lambdaMax | number : "1.2-2" }}
                 </div>
                 <div class="text-sm text-blue-700 font-medium">λ max</div>
               </div>
@@ -795,7 +797,7 @@
                 class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 text-center"
               >
                 <div class="text-2xl font-bold text-purple-600 mb-2">
-                  {{ results.ci | number : "1.2-2" }}
+                  {{ results().ci | number : "1.2-2" }}
                 </div>
                 <div class="text-sm text-purple-700 font-medium">
                   CI (Consistency Index)
@@ -805,7 +807,7 @@
                 class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 text-center"
               >
                 <div class="text-2xl font-bold text-orange-600 mb-2">
-                  {{ results.cr | number : "1.2-2" }}
+                  {{ results().cr | number : "1.2-2" }}
                 </div>
                 <div class="text-sm text-orange-700 font-medium">
                   CR (Consistency Ratio)
@@ -814,23 +816,23 @@
               <div
                 class="rounded-lg p-6 text-center"
                 [ngClass]="
-                  results.statusCr === 'Baik' ? 'bg-green-100' : 'bg-red-100'
+                  results().statusCr === 'Baik' ? 'bg-green-100' : 'bg-red-100'
                 "
               >
                 <div
                   class="text-2xl font-bold mb-2"
                   [ngClass]="
-                    results.statusCr === 'Baik'
+                    results().statusCr === 'Baik'
                       ? 'text-green-600'
                       : 'text-red-600'
                   "
                 >
-                  {{ results.statusCr }}
+                  {{ results().statusCr }}
                 </div>
                 <div
                   class="text-sm font-medium"
                   [ngClass]="
-                    results.statusCr === 'Baik'
+                    results().statusCr === 'Baik'
                       ? 'text-green-600'
                       : 'text-red-600'
                   "
@@ -852,7 +854,7 @@
         <div class="p-6">
           <div class="space-y-6">
             <div
-              *ngFor="let criterion of criteria; let i = index"
+              *ngFor="let criterion of criteria(); let i = index"
               class="border border-gray-200 rounded-lg p-4"
             >
               <div class="flex items-center justify-between mb-4">
@@ -863,19 +865,19 @@
                   <div class="flex">
                     <button
                       (click)="toggleMatricesSub(i)"
-                      *ngIf="consistencyRatio"
+                      *ngIf="consistencyRatio()"
                       class="flex items-center px-2 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors cursor-pointer mr-2"
                     >
                       <lucide-icon
-                        [img]="showMatricesSubcriteria[i] ? EyeClosed : Eye"
+                        [img]="showMatricesSubcriteria()[i] ? EyeClosed : Eye"
                         class="w-4 h-4 mr-2"
                       />
-                      {{ showMatricesSubcriteria[i] ? "Hide" : "Show" }}
+                      {{ showMatricesSubcriteria()[i] ? "Hide" : "Show" }}
                       Detailed
                     </button>
                     <div class="bg-blue-100 rounded-lg px-2 py-2">
                       <div class="text-lg font-bold text-blue-600 r">
-                        {{ ((weights[criterion.id] || 0) * 100).toFixed(1) }}%
+                        {{ ((weights()[criterion.id] || 0) * 100).toFixed(1) }}%
                       </div>
                     </div>
                   </div>
@@ -909,13 +911,13 @@
                     </div>
                   </div>
                 </div>
-                <div *ngIf="showMatricesSubcriteria[i]" class="space-y-6">
+                <div *ngIf="showMatricesSubcriteria()[i]" class="space-y-6">
                   <app-matrix-tables
                     title="Matriks Berpasangan"
-                    [matrix]="resultsCriteria[i].pairwiseMatrix"
+                    [matrix]="resultsCriteria()[i].pairwiseMatrix"
                     [headers]="defaultSubscriteria"
                     [showColSum]="true"
-                    [sumColValues]="resultsCriteria[i].pairwiseSumMatrix"
+                    [sumColValues]="resultsCriteria()[i].pairwiseSumMatrix"
                     [showSum]="false"
                     [showPriority]="false"
                   >
@@ -923,21 +925,21 @@
                   <br />
                   <app-matrix-tables
                     title="Matriks Nilai Kriteria"
-                    [matrix]="resultsCriteria[i].weightsMatrix"
+                    [matrix]="resultsCriteria()[i].weightsMatrix"
                     [headers]="defaultSubscriteria"
                     [showSum]="true"
-                    [sumValues]="resultsCriteria[i].sumWeightsMatrix"
+                    [sumValues]="resultsCriteria()[i].sumWeightsMatrix"
                     [showPriority]="true"
-                    [priorityValues]="resultsCriteria[i].weights"
+                    [priorityValues]="resultsCriteria()[i].weights"
                   >
                   </app-matrix-tables>
                   <br />
                   <app-matrix-tables
                     title="Matriks Penjumlahan Setiap Baris"
-                    [matrix]="resultsCriteria[i].everyRowMatrix"
+                    [matrix]="resultsCriteria()[i].everyRowMatrix"
                     [headers]="defaultSubscriteria"
                     [showSum]="true"
-                    [sumValues]="resultsCriteria[i].sumEveryRowMatrix"
+                    [sumValues]="resultsCriteria()[i].sumEveryRowMatrix"
                   >
                   </app-matrix-tables>
                   <br />
@@ -946,11 +948,11 @@
                     [showHeader]="false"
                     [headers]="defaultSubscriteria"
                     [showPriority]="true"
-                    [priorityValues]="resultsCriteria[i].sumEveryRowMatrix"
+                    [priorityValues]="resultsCriteria()[i].sumEveryRowMatrix"
                     [showSum]="true"
-                    [sumValues]="resultsCriteria[i].weights"
+                    [sumValues]="resultsCriteria()[i].weights"
                     [showRatio]="true"
-                    [ratioValues]="resultsCriteria[i].priorityRatios"
+                    [ratioValues]="resultsCriteria()[i].priorityRatios"
                   >
                   </app-matrix-tables>
                   <br />
@@ -967,7 +969,9 @@
                         class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 text-center"
                       >
                         <div class="text-2xl font-bold text-blue-600 mb-2">
-                          {{ resultsCriteria[i].lambdaMax | number : "1.2-2" }}
+                          {{
+                            resultsCriteria()[i].lambdaMax | number : "1.2-2"
+                          }}
                         </div>
                         <div class="text-sm text-blue-700 font-medium">
                           λ max
@@ -977,7 +981,7 @@
                         class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 text-center"
                       >
                         <div class="text-2xl font-bold text-purple-600 mb-2">
-                          {{ resultsCriteria[i].ci | number : "1.2-2" }}
+                          {{ resultsCriteria()[i].ci | number : "1.2-2" }}
                         </div>
                         <div class="text-sm text-purple-700 font-medium">
                           CI (Consistency Index)
@@ -987,7 +991,7 @@
                         class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6 text-center"
                       >
                         <div class="text-2xl font-bold text-orange-600 mb-2">
-                          {{ resultsCriteria[i].cr | number : "1.2-2" }}
+                          {{ resultsCriteria()[i].cr | number : "1.2-2" }}
                         </div>
                         <div class="text-sm text-orange-700 font-medium">
                           CR (Consistency Ratio)
@@ -996,7 +1000,7 @@
                       <div
                         class="rounded-lg p-6 text-center"
                         [ngClass]="
-                          resultsCriteria[i].statusCr === 'Baik'
+                          resultsCriteria()[i].statusCr === 'Baik'
                             ? 'bg-green-100'
                             : 'bg-red-100'
                         "
@@ -1004,17 +1008,17 @@
                         <div
                           class="text-2xl font-bold mb-2"
                           [ngClass]="
-                            resultsCriteria[i].statusCr === 'Baik'
+                            resultsCriteria()[i].statusCr === 'Baik'
                               ? 'text-green-600'
                               : 'text-red-600'
                           "
                         >
-                          {{ resultsCriteria[i].statusCr }}
+                          {{ resultsCriteria()[i].statusCr }}
                         </div>
                         <div
                           class="text-sm font-medium"
                           [ngClass]="
-                            resultsCriteria[i].statusCr === 'Baik'
+                            resultsCriteria()[i].statusCr === 'Baik'
                               ? 'text-green-600'
                               : 'text-red-600'
                           "
@@ -1036,24 +1040,24 @@
 
   <div class="flex justify-between">
     <button
-      (click)="currentStep = currentStep - 1"
-      [disabled]="currentStep === 1"
+      (click)="currentStep.set(currentStep() - 1)"
+      [disabled]="currentStep() === 1"
       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
     >
       Sebelumnya
     </button>
     <div class="flex space-x-3">
       <button
-        *ngIf="currentStep < 4"
-        (click)="currentStep = currentStep + 1"
+        *ngIf="currentStep() < 4"
+        (click)="currentStep.set(currentStep() + 1)"
         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
       >
         Selanjutnya
       </button>
       <button
-        *ngIf="currentStep === 4"
+        *ngIf="currentStep() === 4"
         (click)="calculateWeights()"
-        [disabled]="criteria.length === 0"
+        [disabled]="criteria().length === 0"
         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Hitung Bobot
@@ -1062,18 +1066,18 @@
   </div>
 
   <div
-    *ngIf="showSaveModal"
+    *ngIf="showSaveModal()"
     class="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50"
   >
     <div
       class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
     >
       <div
-        class="flex items-center justify-between pb-4 border-b border-gray-400"
+        class="flex items-center justify-between pb-4 border-b border-gray-200"
       >
         <h3 class="text-lg font-medium text-gray-900">Simpan Bobot AHP</h3>
         <button
-          (click)="showSaveModal = false"
+          (click)="showSaveModal.set(false)"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         ></button>
       </div>
@@ -1090,7 +1094,7 @@
       </div>
       <div class="mt-6 flex justify-end space-x-3">
         <button
-          (click)="showSaveModal = false"
+          (click)="showSaveModal.set(false)"
           class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
         >
           Batal

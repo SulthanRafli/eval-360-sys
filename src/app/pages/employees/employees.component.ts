@@ -1,4 +1,4 @@
-import { Component, signal, computed, inject, OnInit } from '@angular/core';
+import { Component, signal, computed, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormArray,
@@ -8,8 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { startWith } from 'rxjs';
-import { DeleteConfirmModalComponent } from '../../shared/components/delete-confirm-modal/delete-confirm-modal.component';
+import { startWith, Subscription } from 'rxjs';
 import { Employee } from '../../shared/models/app.types';
 import {
   Plus,
@@ -31,15 +30,10 @@ import { EmployeeService } from '../../shared/services/employee.service';
 @Component({
   selector: 'app-employees',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    DeleteConfirmModalComponent,
-    LucideAngularModule,
-  ],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
   templateUrl: './employees.component.html',
 })
-export class EmployeesComponent implements OnInit {
+export class EmployeesComponent implements OnDestroy {
   readonly Plus = Plus;
   readonly Funnel = Funnel;
   readonly Search = Search;
@@ -55,6 +49,7 @@ export class EmployeesComponent implements OnInit {
 
   private fb = inject(FormBuilder);
   private employeeService = inject(EmployeeService);
+  private subscriptions = new Subscription();
 
   // --- STATE MANAGEMENT ---
   private allEmployees$ = this.employeeService.getEmployees();
@@ -68,9 +63,11 @@ export class EmployeesComponent implements OnInit {
     hasTeammates: [''],
     hasSubordinates: [''],
   });
+
   filtersSignal = toSignal(
     this.filterForm.valueChanges.pipe(startWith(this.filterForm.value))
   );
+
   employeeForm = this.fb.group({
     id: [null as string | null],
     name: ['', Validators.required],
@@ -83,10 +80,14 @@ export class EmployeesComponent implements OnInit {
     subordinates: this.fb.array([]),
   });
 
+  // --- FLAGS FOR FORM STATE ---
+  private isFormBeingPopulated = signal(false);
+
   // --- DERIVED DATA (COMPUTED SIGNALS) ---
   employeesMap = computed(
     () => new Map(this.allEmployees().map((e) => [e.id, e]))
   );
+
   filteredEmployees = computed(() => {
     const employees = this.allEmployees();
     const f = this.filtersSignal();
@@ -124,32 +125,36 @@ export class EmployeesComponent implements OnInit {
       );
     });
   });
+
   positions = computed(() => [
     'Frontend Developer',
     'Backend Developer',
     'DevOps Engineer',
   ]);
+
   levels = computed(() => ['senior', 'junior']);
+
   supervisors = computed(() =>
     this.allEmployees()
       .filter((e) => e.subordinates.length > 0)
       .map((e) => ({ id: e.id, name: e.name }))
   );
+
   hasActiveFilters = computed(() => {
     const f = this.filtersSignal();
     if (!f) return false;
-    // Check if any filter value is present and not an empty string
     return Object.values(f).some((value) => value !== null && value !== '');
   });
+
   availableEmployees = computed(() => {
     const f = this.filtersAvailableEmployees();
     if (!f) return [];
-    const position = f.position;
     const level = f.level;
     return this.allEmployees().filter(
       (e) => e.id !== this.selectedEmployee()?.id && e.level === level
     );
   });
+
   availableSupervisors = computed(() => {
     const f = this.filtersAvailableEmployees();
     if (!f) return [];
@@ -163,6 +168,7 @@ export class EmployeesComponent implements OnInit {
         level === 'junior'
     );
   });
+
   availableJunior = computed(() => {
     const f = this.filtersAvailableEmployees();
     if (!f) return [];
@@ -176,6 +182,7 @@ export class EmployeesComponent implements OnInit {
         level === 'senior'
     );
   });
+
   filtersAvailableEmployees = toSignal(
     this.employeeForm.valueChanges.pipe(startWith(this.employeeForm.value))
   );
@@ -188,31 +195,95 @@ export class EmployeesComponent implements OnInit {
   selectedEmployee = signal<Employee | null>(null);
 
   ngOnInit(): void {
+    this.setupFormSubscriptions();
+  }
+
+  ngOnDestroy(): void {
+    this.subscriptions.unsubscribe();
+  }
+
+  private setupFormSubscriptions(): void {
     const levelControl = this.employeeForm.get('level');
     const positionControl = this.employeeForm.get('position');
 
     if (levelControl) {
-      levelControl.valueChanges
+      const levelSub = levelControl.valueChanges
         .pipe(startWith(levelControl.value))
         .subscribe((levelValue) => {
-          if (levelValue) {
-            this.employeeForm.get('supervisor')?.setValue(null);
+          // Only clear when user is interacting, not when form is being populated
+          if (
+            levelValue &&
+            !this.isFormBeingPopulated() &&
+            this.formMode() === 'create'
+          ) {
+            this.employeeForm
+              .get('supervisor')
+              ?.setValue(null, { emitEvent: false });
             this.setFormArray('teammates', []);
             this.setFormArray('subordinates', []);
           }
         });
+      this.subscriptions.add(levelSub);
     }
+
     if (positionControl) {
-      positionControl.valueChanges
+      const positionSub = positionControl.valueChanges
         .pipe(startWith(positionControl.value))
         .subscribe((positionValue) => {
-          if (positionValue) {
-            this.employeeForm.get('supervisor')?.setValue(null);
+          // Only clear when user is interacting, not when form is being populated
+          if (
+            positionValue &&
+            !this.isFormBeingPopulated() &&
+            this.formMode() === 'create'
+          ) {
+            this.employeeForm
+              .get('supervisor')
+              ?.setValue(null, { emitEvent: false });
             this.setFormArray('teammates', []);
             this.setFormArray('subordinates', []);
           }
         });
+      this.subscriptions.add(positionSub);
     }
+  }
+
+  // --- UTILITY METHODS ---
+  private setFormArray(
+    controlName: 'teammates' | 'subordinates',
+    ids: string[]
+  ): void {
+    const formArray = this.employeeForm.get(controlName) as FormArray;
+    formArray.clear();
+    ids.forEach((id) => formArray.push(new FormControl(id)));
+  }
+
+  private populateEmployeeForm(employee: Employee): void {
+    // Set flag to prevent clearing during population
+    this.isFormBeingPopulated.set(true);
+
+    // Reset form first
+    this.employeeForm.reset();
+
+    // Set all form values including arrays
+    this.employeeForm.patchValue(
+      {
+        id: employee.id,
+        name: employee.name,
+        email: employee.email,
+        department: employee.department,
+        position: employee.position,
+        level: employee.level,
+        supervisor: employee.supervisor || null,
+      },
+      { emitEvent: false }
+    );
+
+    // Set form arrays
+    this.setFormArray('teammates', employee.teammates);
+    this.setFormArray('subordinates', employee.subordinates);
+
+    // Re-enable clearing logic
+    this.isFormBeingPopulated.set(false);
   }
 
   // --- ACTION HANDLERS ---
@@ -221,7 +292,10 @@ export class EmployeesComponent implements OnInit {
     return formArray.value.includes(id);
   }
 
-  onCheckboxChange(event: Event, controlName: 'teammates' | 'subordinates') {
+  onCheckboxChange(
+    event: Event,
+    controlName: 'teammates' | 'subordinates'
+  ): void {
     const formArray = this.employeeForm.get(controlName) as FormArray;
     const target = event.target as HTMLInputElement;
     const id = target.value;
@@ -236,11 +310,11 @@ export class EmployeesComponent implements OnInit {
     }
   }
 
-  onRemoveFilter(controlName: string) {
+  onRemoveFilter(controlName: string): void {
     this.filterForm.get(controlName)?.setValue('');
   }
 
-  getSupervisorName(id: string | undefined | null) {
+  getSupervisorName(id: string | undefined | null): string | undefined {
     return this.supervisors().find((s) => s.id === id)?.name;
   }
 
@@ -267,10 +341,12 @@ export class EmployeesComponent implements OnInit {
       : 'bg-green-100 text-green-800';
   }
 
-  onAddEmployee() {
+  onAddEmployee(): void {
     this.formMode.set('create');
     this.selectedEmployee.set(null);
     this.isFormModalOpen.set(true);
+    this.isFormBeingPopulated.set(true);
+
     this.employeeForm.reset();
     this.employeeForm.patchValue({
       department: 'Technology',
@@ -279,84 +355,35 @@ export class EmployeesComponent implements OnInit {
     });
     this.setFormArray('teammates', []);
     this.setFormArray('subordinates', []);
+
+    this.isFormBeingPopulated.set(false);
   }
 
-  private setFormArray(
-    controlName: 'teammates' | 'subordinates',
-    ids: string[]
-  ) {
-    const formArray = this.employeeForm.get(controlName) as FormArray;
-    formArray.clear();
-    ids.forEach((id) => formArray.push(new FormControl(id)));
-  }
-
-  onViewEmployee(employee: Employee) {
+  onViewEmployee(employee: Employee): void {
     this.formMode.set('view');
     this.selectedEmployee.set(employee);
     this.isFormModalOpen.set(true);
-    this.employeeForm.reset();
+
+    this.populateEmployeeForm(employee);
     this.employeeForm.disable();
-    const selected = this.selectedEmployee();
-    if (selected) {
-      this.employeeForm
-        .get('level')
-        ?.setValue(selected.level, { emitEvent: true });
-      this.employeeForm
-        .get('position')
-        ?.setValue(selected.position, { emitEvent: true });
-
-      setTimeout(() => {
-        this.employeeForm.patchValue({
-          id: selected.id,
-          name: selected.name,
-          email: selected.email,
-          department: selected.department,
-          supervisor: selected.supervisor || null,
-        });
-
-        this.setFormArray('teammates', selected.teammates);
-        this.setFormArray('subordinates', selected.subordinates);
-      }, 500);
-    }
   }
 
-  onEditEmployee(employee: Employee) {
+  onEditEmployee(employee: Employee): void {
     this.formMode.set('edit');
     this.selectedEmployee.set(employee);
     this.isFormModalOpen.set(true);
-    this.employeeForm.reset();
-    const selected = this.selectedEmployee();
-    if (selected) {
-      this.employeeForm
-        .get('level')
-        ?.setValue(selected.level, { emitEvent: true });
-      this.employeeForm
-        .get('position')
-        ?.setValue(selected.position, { emitEvent: true });
 
-      setTimeout(() => {
-        this.employeeForm.patchValue({
-          id: selected.id,
-          name: selected.name,
-          email: selected.email,
-          department: selected.department,
-          supervisor: selected.supervisor || null,
-        });
-
-        this.setFormArray('teammates', selected.teammates);
-        this.setFormArray('subordinates', selected.subordinates);
-      }, 500);
-    }
+    this.populateEmployeeForm(employee);
     this.employeeForm.enable();
     this.employeeForm.get('department')?.disable();
   }
 
-  onDeleteEmployee(employee: Employee) {
+  onDeleteEmployee(employee: Employee): void {
     this.employeeToDelete.set(employee);
     this.isDeleteModalOpen.set(true);
   }
 
-  onClearFilters() {
+  onClearFilters(): void {
     this.filterForm.reset({
       search: '',
       position: '',
@@ -367,12 +394,12 @@ export class EmployeesComponent implements OnInit {
     });
   }
 
-  onDeleteModalClose() {
+  onDeleteModalClose(): void {
     this.isDeleteModalOpen.set(false);
     this.employeeToDelete.set(null);
   }
 
-  async onDeleteModalConfirm() {
+  async onDeleteModalConfirm(): Promise<void> {
     const employee = this.employeeToDelete();
     if (employee) {
       try {
@@ -384,16 +411,17 @@ export class EmployeesComponent implements OnInit {
     this.onDeleteModalClose();
   }
 
-  onFormModalClose() {
+  onFormModalClose(): void {
     this.isFormModalOpen.set(false);
     this.selectedEmployee.set(null);
   }
 
-  async onSaveEmployee() {
+  async onSaveEmployee(): Promise<void> {
     if (this.employeeForm.invalid) {
       this.employeeForm.markAllAsTouched();
       return;
     }
+
     const employeeData = this.employeeForm.getRawValue();
     try {
       const dataToSave = {
@@ -407,12 +435,12 @@ export class EmployeesComponent implements OnInit {
         teammates: (employeeData.teammates as string[]) || [],
         subordinates: (employeeData.subordinates as string[]) || [],
       };
+
       if (this.formMode() === 'create') {
         await this.employeeService.addEmployee(dataToSave);
       } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
         const employeeId = this.selectedEmployee()!.id;
         console.log(dataToSave);
-
         await this.employeeService.updateEmployee(employeeId, dataToSave);
       }
     } catch (error) {

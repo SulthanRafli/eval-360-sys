@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   CircleDivide,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-angular';
 import { CriteriaService } from '../../shared/services/criteria.service';
 import { Criteria, Question } from '../../shared/models/app.types';
-import { Subscription } from 'rxjs';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-criteria',
@@ -23,7 +23,7 @@ import { Subscription } from 'rxjs';
   templateUrl: './criteria.component.html',
   styleUrl: './criteria.component.css',
 })
-export class CriteriaComponent implements OnInit {
+export class CriteriaComponent {
   // Icon references
   readonly Plus = Plus;
   readonly Database = Database;
@@ -37,42 +37,36 @@ export class CriteriaComponent implements OnInit {
 
   // Inject the service
   private criteriaService = inject(CriteriaService);
-  private criteriaSubscription: Subscription | null = null;
+
+  private criteria$ = this.criteriaService.getCriteria();
+  public criteria = toSignal(this.criteria$, { initialValue: [] });
 
   // Component state
-  criteria: Criteria[] = [];
-  editingCriteria: Criteria | null = null;
-  editingQuestion: Question | null = null;
-  isLoading = true;
-  showCriteriaForm = false;
-  showQuestionForm = false;
-  showDeleteModal = false;
-  itemToDelete: {
+  editingCriteria = signal<Criteria | null>(null);
+  editingQuestion = signal<Question | null>(null);
+  isLoading = signal(true);
+  showCriteriaForm = signal(false);
+  showQuestionForm = signal(false);
+  showDeleteModal = signal(false);
+  itemToDelete = signal<{
     type: 'criteria' | 'subcriteria';
     item: Criteria | Question;
-  } | null = null;
-
-  // Form models
-  criteriaForm = { code: '', name: '' };
-  subcriteriaForm = { code: '', text: '', criteriaId: '' };
-  errors: { [key: string]: string } = {};
-
-  ngOnInit(): void {
-    this.loadCriteria();
-  }
-
-  ngOnDestroy(): void {
-    // Unsubscribe to prevent memory leaks
-    this.criteriaSubscription?.unsubscribe();
-  }
+  } | null>(null);
+  criteriaForm = signal<{ code: string; name: string }>({ code: '', name: '' });
+  subcriteriaForm = signal<{ code: string; text: string; criteriaId: string }>({
+    code: '',
+    text: '',
+    criteriaId: '',
+  });
+  errors = signal<{ [key: string]: string }>({});
 
   // Statistics getters
   get totalCriteria(): number {
-    return this.criteria.length;
+    return this.criteria().length;
   }
 
   get totalQuestion(): number {
-    return this.criteria.reduce(
+    return this.criteria().reduce(
       (sum, c) => sum + (c.questions?.length || 0),
       0
     );
@@ -83,97 +77,77 @@ export class CriteriaComponent implements OnInit {
     return (this.totalQuestion / this.totalCriteria).toFixed(1);
   }
 
-  // Data operations
-  loadCriteria(): void {
-    this.isLoading = true;
-    this.criteriaSubscription = this.criteriaService.getCriteria().subscribe({
-      next: (data) => {
-        this.criteria = data;
-        // Ensure questions array exists
-        this.criteria.forEach((c) => {
-          if (!c.questions) {
-            c.questions = [];
-          }
-        });
-        this.isLoading = false;
-      },
-      error: (err) => {
-        console.error('Error loading criteria:', err);
-        this.isLoading = false;
-      },
-    });
-  }
-
   // Validation functions (remain mostly the same)
   validateCriteriaForm(): boolean {
     const newErrors: { [key: string]: string } = {};
-    if (!this.criteriaForm.code.trim())
+    if (!this.criteriaForm().code.trim())
       newErrors['code'] = 'Kode kriteria wajib diisi';
     else if (
-      this.criteria.some(
+      this.criteria().some(
         (c) =>
-          c.code === this.criteriaForm.code && c.id !== this.editingCriteria?.id
+          c.code === this.criteriaForm().code &&
+          c.id !== this.editingCriteria()?.id
       )
     ) {
       newErrors['code'] = 'Kode kriteria sudah digunakan';
     }
-    if (!this.criteriaForm.name.trim())
+    if (!this.criteriaForm().name.trim())
       newErrors['name'] = 'Nama kriteria wajib diisi';
-    this.errors = newErrors;
+    this.errors.set(newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
   validateQuestionForm(): boolean {
     const newErrors: { [key: string]: string } = {};
-    if (!this.subcriteriaForm.code.trim())
+    if (!this.subcriteriaForm().code.trim())
       newErrors['subCode'] = 'Kode subkriteria wajib diisi';
     else {
-      const allQuestions = this.criteria.flatMap((c) => c.questions || []);
+      const allQuestions = this.criteria().flatMap((c) => c.questions || []);
       if (
         allQuestions.some(
           (q) =>
-            q.code === this.subcriteriaForm.code &&
-            q.id !== this.editingQuestion?.id
+            q.code === this.subcriteriaForm().code &&
+            q.id !== this.editingQuestion()?.id
         )
       ) {
         newErrors['subCode'] = 'Kode subkriteria sudah digunakan';
       }
     }
-    if (!this.subcriteriaForm.text.trim())
+    if (!this.subcriteriaForm().text.trim())
       newErrors['subText'] = 'Teks subkriteria wajib diisi';
-    if (!this.subcriteriaForm.criteriaId)
+    if (!this.subcriteriaForm().criteriaId)
       newErrors['subCriteria'] = 'Pilih kriteria untuk subkriteria';
-    this.errors = newErrors;
+    this.errors.set(newErrors);
     return Object.keys(newErrors).length === 0;
   }
 
   // --- CRUD Operations for Criteria ---
   handleCreateCriteria(): void {
-    this.editingCriteria = null;
-    this.criteriaForm = { code: '', name: '' };
-    this.errors = {};
-    this.showCriteriaForm = true;
+    this.editingCriteria.set(null);
+    this.criteriaForm.set({ code: '', name: '' });
+    this.errors.set({});
+    this.showCriteriaForm.set(true);
   }
 
   handleEditCriteria(criteria: Criteria): void {
-    this.editingCriteria = criteria;
-    this.criteriaForm = { code: criteria.code, name: criteria.name };
-    this.errors = {};
-    this.showCriteriaForm = true;
+    this.editingCriteria.set(criteria);
+    this.criteriaForm.set({ code: criteria.code, name: criteria.name });
+    this.errors.set({});
+    this.showCriteriaForm.set(true);
   }
 
   async handleSaveCriteria(): Promise<void> {
     if (!this.validateCriteriaForm()) return;
 
     try {
-      if (this.editingCriteria) {
+      if (this.editingCriteria()) {
         await this.criteriaService.updateCriteria(
-          this.editingCriteria.id,
-          this.criteriaForm
+          this.editingCriteria()?.id || '',
+          this.criteriaForm()
         );
       } else {
         const newCriteria: Omit<Criteria, 'id'> = {
-          ...this.criteriaForm,
+          ...this.criteriaForm(),
           questions: [],
         };
         await this.criteriaService.addCriteria(newCriteria);
@@ -186,61 +160,64 @@ export class CriteriaComponent implements OnInit {
   }
 
   handleDeleteCriteria(criteria: Criteria): void {
-    this.itemToDelete = { type: 'criteria', item: criteria };
-    this.showDeleteModal = true;
+    this.itemToDelete.set({ type: 'criteria', item: criteria });
+    this.showDeleteModal.set(true);
   }
 
   // --- CRUD Operations for Question ---
   handleCreateQuestion(criteriaId?: string): void {
-    this.editingQuestion = null;
-    this.subcriteriaForm = {
+    this.editingQuestion.set(null);
+    this.subcriteriaForm.set({
       code: '',
       text: '',
       criteriaId:
-        criteriaId || (this.criteria.length > 0 ? this.criteria[0].id : ''),
-    };
-    this.errors = {};
-    this.showQuestionForm = true;
+        criteriaId || (this.criteria().length > 0 ? this.criteria()[0].id : ''),
+    });
+    this.errors.set({});
+    this.showQuestionForm.set(true);
   }
 
   handleEditQuestion(subcriteria: Question): void {
-    this.editingQuestion = subcriteria;
-    this.subcriteriaForm = {
+    this.editingQuestion.set(subcriteria);
+    this.subcriteriaForm.set({
       code: subcriteria.code,
       text: subcriteria.text,
       criteriaId: subcriteria.criteriaId,
-    };
-    this.errors = {};
-    this.showQuestionForm = true;
+    });
+    this.errors.set({});
+    this.showQuestionForm.set(true);
   }
 
   async handleSaveQuestion(): Promise<void> {
     if (!this.validateQuestionForm()) return;
 
     try {
-      if (this.editingQuestion) {
+      if (this.editingQuestion()) {
         // If the criteria ID has changed, we need to move the question
         if (
-          this.editingQuestion.criteriaId !== this.subcriteriaForm.criteriaId
+          this.editingQuestion()?.criteriaId !==
+          this.subcriteriaForm()?.criteriaId
         ) {
           const questionToMove: Question = {
-            ...this.editingQuestion,
-            code: this.subcriteriaForm.code,
-            text: this.subcriteriaForm.text,
+            id: this.editingQuestion()?.id || '',
+            code: this.subcriteriaForm().code,
+            text: this.subcriteriaForm().text,
+            criteriaId: this.editingQuestion()?.criteriaId || '',
           };
           await this.criteriaService.moveQuestion(
             questionToMove,
-            this.subcriteriaForm.criteriaId
+            this.subcriteriaForm().criteriaId
           );
         } else {
           // Otherwise, just update the question in place
           const updatedQuestion: Question = {
-            ...this.editingQuestion,
-            code: this.subcriteriaForm.code,
-            text: this.subcriteriaForm.text,
+            id: this.editingQuestion()?.id || '',
+            code: this.subcriteriaForm().code,
+            text: this.subcriteriaForm().text,
+            criteriaId: this.editingQuestion()?.criteriaId || '',
           };
           await this.criteriaService.updateQuestion(
-            this.subcriteriaForm.criteriaId,
+            this.subcriteriaForm().criteriaId,
             updatedQuestion
           );
         }
@@ -248,12 +225,12 @@ export class CriteriaComponent implements OnInit {
         // Create new subcriteria
         const newQuestion: Question = {
           id: `P${Date.now()}`, // Simple unique ID generation
-          code: this.subcriteriaForm.code,
-          text: this.subcriteriaForm.text,
-          criteriaId: this.subcriteriaForm.criteriaId,
+          code: this.subcriteriaForm().code,
+          text: this.subcriteriaForm().text,
+          criteriaId: this.subcriteriaForm().criteriaId,
         };
         await this.criteriaService.addQuestion(
-          this.subcriteriaForm.criteriaId,
+          this.subcriteriaForm().criteriaId,
           newQuestion
         );
       }
@@ -264,21 +241,21 @@ export class CriteriaComponent implements OnInit {
   }
 
   handleDeleteQuestion(subcriteria: Question): void {
-    this.itemToDelete = { type: 'subcriteria', item: subcriteria };
-    this.showDeleteModal = true;
+    this.itemToDelete.set({ type: 'subcriteria', item: subcriteria });
+    this.showDeleteModal.set(true);
   }
 
   // --- Modal Actions ---
   async confirmDelete(): Promise<void> {
-    if (!this.itemToDelete) return;
+    if (!this.itemToDelete()) return;
 
     try {
-      if (this.itemToDelete.type === 'criteria') {
+      if (this.itemToDelete()?.type === 'criteria') {
         await this.criteriaService.deleteCriteria(
-          (this.itemToDelete.item as Criteria).id
+          (this.itemToDelete()?.item as Criteria).id
         );
       } else {
-        const sub = this.itemToDelete.item as Question;
+        const sub = this.itemToDelete()?.item as Question;
         await this.criteriaService.deleteQuestion(sub.criteriaId, sub.id);
       }
     } catch (error) {
@@ -290,25 +267,25 @@ export class CriteriaComponent implements OnInit {
 
   // --- UI Helper Methods ---
   closeCriteriaForm(): void {
-    this.showCriteriaForm = false;
-    this.editingCriteria = null;
+    this.showCriteriaForm.set(true);
+    this.editingCriteria.set(null);
   }
 
   closeQuestionForm(): void {
-    this.showQuestionForm = false;
-    this.editingQuestion = null;
+    this.showQuestionForm.set(false);
+    this.editingCriteria.set(null);
   }
 
   openDeleteModal(
     type: 'criteria' | 'subcriteria',
     item: Criteria | Question
   ): void {
-    this.itemToDelete = { type, item };
-    this.showDeleteModal = true;
+    this.itemToDelete.set({ type, item });
+    this.showDeleteModal.set(true);
   }
 
   closeDeleteModal(): void {
-    this.showDeleteModal = false;
-    this.itemToDelete = null;
+    this.showDeleteModal.set(false);
+    this.itemToDelete.set(null);
   }
 }

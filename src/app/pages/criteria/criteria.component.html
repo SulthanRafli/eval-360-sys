@@ -117,7 +117,7 @@
   <!-- Criteria List -->
   <div class="space-y-4">
     <div
-      *ngFor="let criteriaItem of criteria"
+      *ngFor="let criteriaItem of criteria()"
       class="bg-white shadow rounded-lg overflow-hidden"
     >
       <!-- Criteria Header -->
@@ -227,7 +227,7 @@
   </div>
 
   <!-- Empty State -->
-  <div *ngIf="criteria.length === 0" class="text-center py-12">
+  <div *ngIf="criteria().length === 0" class="text-center py-12">
     <lucide-icon
       class="mx-auto h-12 w-12 text-gray-400"
       [img]="FileText"
@@ -249,22 +249,22 @@
 
   <!-- Criteria Form Modal -->
   <div
-    *ngIf="showCriteriaForm"
+    *ngIf="showCriteriaForm()"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
   >
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-      (click)="showCriteriaForm = false"
+      (click)="closeCriteriaForm()"
     ></div>
     <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
       <div
         class="flex items-center justify-between p-6 border-b border-gray-200"
       >
         <h3 class="text-lg font-medium text-gray-900">
-          {{ editingCriteria ? "Edit Kriteria" : "Tambah Kriteria Baru" }}
+          {{ editingCriteria() ? "Edit Kriteria" : "Tambah Kriteria Baru" }}
         </h3>
         <button
-          (click)="showCriteriaForm = false"
+          (click)="closeCriteriaForm()"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
           <lucide-icon class="w-6 h-6" [img]="X"></lucide-icon>
@@ -277,14 +277,14 @@
               >Kode Kriteria *</label
             ><input
               type="text"
-              [(ngModel)]="criteriaForm.code"
+              [(ngModel)]="criteriaForm().code"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
-              [class.border-red-300]="errors['code']"
-              [class.border-gray-300]="!errors['code']"
+              [class.border-red-300]="errors()['code']"
+              [class.border-gray-300]="!errors()['code']"
               placeholder="C1, C2, dst."
             />
-            <p *ngIf="errors['code']" class="mt-1 text-sm text-red-600">
-              {{ errors["code"] }}
+            <p *ngIf="errors()['code']" class="mt-1 text-sm text-red-600">
+              {{ errors()["code"] }}
             </p>
           </div>
           <div>
@@ -292,14 +292,14 @@
               >Nama Kriteria *</label
             ><input
               type="text"
-              [(ngModel)]="criteriaForm.name"
+              [(ngModel)]="criteriaForm().name"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
-              [class.border-red-300]="errors['name']"
-              [class.border-gray-300]="!errors['name']"
+              [class.border-red-300]="errors()['name']"
+              [class.border-gray-300]="!errors()['name']"
               placeholder="Nama kriteria evaluasi"
             />
-            <p *ngIf="errors['name']" class="mt-1 text-sm text-red-600">
-              {{ errors["name"] }}
+            <p *ngIf="errors()['name']" class="mt-1 text-sm text-red-600">
+              {{ errors()["name"] }}
             </p>
           </div>
         </div>
@@ -308,7 +308,7 @@
         class="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50"
       >
         <button
-          (click)="showCriteriaForm = false"
+          (click)="closeCriteriaForm()"
           class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
         >
           Batal</button
@@ -316,29 +316,29 @@
           (click)="handleSaveCriteria()"
           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
         >
-          {{ editingCriteria ? "Update" : "Simpan" }}
+          {{ editingCriteria() ? "Update" : "Simpan" }}
         </button>
       </div>
     </div>
   </div>
 
   <div
-    *ngIf="showQuestionForm"
+    *ngIf="showQuestionForm()"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
   >
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-      (click)="showQuestionForm = false"
+      (click)="closeQuestionForm()"
     ></div>
     <div class="relative bg-white rounded-lg shadow-xl w-full max-w-2xl">
       <div
         class="flex items-center justify-between p-6 border-b border-gray-200"
       >
         <h3 class="text-lg font-medium text-gray-900">
-          {{ editingQuestion ? "Edit Pertanyaan" : "Tambah Pertanyaan Baru" }}
+          {{ editingQuestion() ? "Edit Pertanyaan" : "Tambah Pertanyaan Baru" }}
         </h3>
         <button
-          (click)="showQuestionForm = false"
+          (click)="closeQuestionForm()"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
           <lucide-icon class="w-6 h-6" [img]="X"></lucide-icon>
@@ -352,14 +352,14 @@
                 >Kode Pertanyaan *</label
               ><input
                 type="text"
-                [(ngModel)]="subcriteriaForm.code"
+                [(ngModel)]="subcriteriaForm().code"
                 class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
-                [class.border-red-300]="errors['subCode']"
-                [class.border-gray-300]="!errors['subCode']"
+                [class.border-red-300]="errors()['subCode']"
+                [class.border-gray-300]="!errors()['subCode']"
                 placeholder="P1, P2, dst."
               />
-              <p *ngIf="errors['subCode']" class="mt-1 text-sm text-red-600">
-                {{ errors["subCode"] }}
+              <p *ngIf="errors()['subCode']" class="mt-1 text-sm text-red-600">
+                {{ errors()["subCode"] }}
               </p>
             </div>
             <div>
@@ -367,21 +367,21 @@
                 >Kriteria *</label
               >
               <select
-                [(ngModel)]="subcriteriaForm.criteriaId"
+                [(ngModel)]="subcriteriaForm().criteriaId"
                 class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                [class.border-red-300]="errors['subCriteria']"
-                [class.border-gray-300]="!errors['subCriteria']"
+                [class.border-red-300]="errors()['subCriteria']"
+                [class.border-gray-300]="!errors()['subCriteria']"
               >
                 <option value="">Pilih kriteria</option>
-                <option *ngFor="let c of criteria" [value]="c.id">
+                <option *ngFor="let c of criteria()" [value]="c.id">
                   {{ c.code }} - {{ c.name }}
                 </option>
               </select>
               <p
-                *ngIf="errors['subCriteria']"
+                *ngIf="errors()['subCriteria']"
                 class="mt-1 text-sm text-red-600"
               >
-                {{ errors["subCriteria"] }}
+                {{ errors()["subCriteria"] }}
               </p>
             </div>
           </div>
@@ -389,15 +389,15 @@
             <label class="block text-sm font-medium text-gray-700 mb-1"
               >Pertanyaan *</label
             ><textarea
-              [(ngModel)]="subcriteriaForm.text"
+              [(ngModel)]="subcriteriaForm().text"
               rows="3"
               class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-400"
-              [class.border-red-300]="errors['subText']"
-              [class.border-gray-300]="!errors['subText']"
+              [class.border-red-300]="errors()['subText']"
+              [class.border-gray-300]="!errors()['subText']"
               placeholder="Deskripsi pertanyaan evaluasi..."
             ></textarea>
-            <p *ngIf="errors['subText']" class="mt-1 text-sm text-red-600">
-              {{ errors["subText"] }}
+            <p *ngIf="errors()['subText']" class="mt-1 text-sm text-red-600">
+              {{ errors()["subText"] }}
             </p>
           </div>
         </div>
@@ -406,7 +406,7 @@
         class="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200 bg-gray-50"
       >
         <button
-          (click)="showQuestionForm = false"
+          (click)="closeQuestionForm()"
           class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
         >
           Batal</button
@@ -414,19 +414,19 @@
           (click)="handleSaveQuestion()"
           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
         >
-          {{ editingQuestion ? "Update" : "Simpan" }}
+          {{ editingQuestion() ? "Update" : "Simpan" }}
         </button>
       </div>
     </div>
   </div>
 
   <div
-    *ngIf="showDeleteModal && itemToDelete"
+    *ngIf="showDeleteModal() && itemToDelete()"
     class="fixed inset-0 z-50 flex items-center justify-center p-4"
   >
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm"
-      (click)="showDeleteModal = false"
+      (click)="closeDeleteModal()"
     ></div>
     <div class="relative bg-white rounded-lg shadow-xl w-full max-w-md">
       <div class="p-6">
@@ -447,10 +447,12 @@
               <p class="text-sm text-gray-500">
                 Apakah Anda yakin ingin menghapus
                 {{
-                  itemToDelete.type === "criteria" ? "kriteria" : "pertanyaan"
+                  itemToDelete()?.type === "criteria"
+                    ? "kriteria"
+                    : "pertanyaan"
                 }}
                 ini?
-                <span *ngIf="itemToDelete.type === 'criteria'"
+                <span *ngIf="itemToDelete()?.type === 'criteria'"
                   >Semua pertanyaan di dalamnya juga akan terhapus.</span
                 >
               </p>
@@ -467,7 +469,7 @@
         >
           Hapus</button
         ><button
-          (click)="showDeleteModal = false"
+          (click)="closeDeleteModal()"
           class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
         >
           Batal

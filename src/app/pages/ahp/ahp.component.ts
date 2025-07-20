@@ -1,4 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import {
+  Component,
+  inject,
+  OnInit,
+  signal,
+  computed,
+  effect,
+} from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -53,9 +60,30 @@ export class AhpComponent implements OnInit {
   readonly FileText = FileText;
   readonly Plus = Plus;
 
-  //Matrix
-  headerCriteria: Header[] = [];
-  results: AhpResults = {
+  // Signals for reactive state management
+  isLoading = signal(true);
+  currentStep = signal(1);
+  criteria = signal<Criteria[]>([]);
+  subcriteria = signal<Subcriteria[]>([]);
+  comparisons = signal<AHPComparison[]>([]);
+  subcriteriaComparisons = signal<SubcriteriaComparison[]>([]);
+  weights = signal<{ [key: string]: number }>({});
+  subcriteriaWeights = signal<{
+    [criteriaId: string]: { [subcriteriaId: string]: number };
+  }>({});
+  consistencyRatio = signal(0);
+  subcriteriaConsistencyRatios = signal<{ [criteriaId: string]: number }>({});
+  savedWeights = signal<AHPWeights[]>([]);
+
+  // UI State signals
+  showSaveModal = signal(false);
+  saveName = '';
+  expandedCriteria = signal<{ [key: string]: boolean }>({});
+  showMatrices = signal(false);
+  showMatricesSubcriteria = signal<boolean[]>([]);
+
+  // Matrix results signals
+  results = signal<AhpResults>({
     pairwiseMatrix: [],
     pairwiseSumMatrix: [],
     weightsMatrix: [],
@@ -68,33 +96,16 @@ export class AhpComponent implements OnInit {
     ci: 0,
     cr: 0,
     statusCr: '-',
-  };
-  resultsCriteria: AhpResults[] = [];
-  showMatrices: boolean = false;
-  showMatricesSubcriteria: boolean[] = [];
-  summedMatrixForTable2: number[][] = [];
-  rowSumsForTable2: number[] = [];
-  matrixForTable3: number[][] = [];
+  });
+  resultsCriteria = signal<AhpResults[]>([]);
 
-  // Component State
-  isLoading = true;
-  currentStep = 1;
-  criteria: Criteria[] = [];
-  comparisons: AHPComparison[] = [];
-  subcriteriaComparisons: SubcriteriaComparison[] = [];
-  weights: { [key: string]: number } = {};
-  subcriteriaWeights: {
-    [criteriaId: string]: { [subcriteriaId: string]: number };
-  } = {};
-  consistencyRatio = 0;
-  subcriteriaConsistencyRatios: { [criteriaId: string]: number } = {};
-  savedWeights: AHPWeights[] = [];
-
-  // UI State
-  showSaveModal = false;
-  saveName = '';
-  expandedCriteria: { [key: string]: boolean } = {};
-  subcriteria: Subcriteria[] = [];
+  // Computed signals
+  headerCriteria = computed(() =>
+    this.criteria().map((val) => ({
+      code: val.code,
+      name: val.name,
+    }))
+  );
 
   // AHP Constants
   readonly scaleValues = [
@@ -251,37 +262,32 @@ export class AhpComponent implements OnInit {
   }
 
   private loadInitialData(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
+
     const criteriaSub = this.criteriaService
       .getCriteria()
       .subscribe((criteria) => {
-        this.criteria = criteria;
-        this.headerCriteria = criteria.map((val) => {
-          return {
-            code: val.code,
-            name: val.name,
-          };
-        });
-        this.isLoading = false;
+        this.criteria.set(criteria);
+        this.isLoading.set(false);
 
         const initialSubcriteria: Subcriteria[] = [];
-        this.criteria.forEach((criteria) => {
+        criteria.forEach((criteriaItem) => {
           this.defaultSubscriteria.forEach((subcriteria) => {
             initialSubcriteria.push({
-              id: `${criteria.id}-${subcriteria.code}`,
+              id: `${criteriaItem.id}-${subcriteria.code}`,
               code: subcriteria.code,
               name: subcriteria.name,
-              criteriaId: criteria.id,
+              criteriaId: criteriaItem.id,
             });
           });
         });
-        this.subcriteria = initialSubcriteria;
+        this.subcriteria.set(initialSubcriteria);
       });
 
     const weightsSub = this.ahpService
       .getSavedWeights()
       .subscribe((weights) => {
-        this.savedWeights = weights;
+        this.savedWeights.set(weights);
       });
 
     this.subscriptions.add(criteriaSub);
@@ -326,7 +332,7 @@ export class AhpComponent implements OnInit {
     comparisons: SubcriteriaComparison[],
     criteriaId: string
   ): number[][] {
-    const criteriaSubcriteria = this.subcriteria.filter(
+    const criteriaSubcriteria = this.subcriteria().filter(
       (s) => s.criteriaId === criteriaId
     );
     const n = criteriaSubcriteria.length;
@@ -459,11 +465,11 @@ export class AhpComponent implements OnInit {
   }
 
   calculateWeights(): void {
-    const matrix = this.createMatrix(this.comparisons, this.criteria);
+    const matrix = this.createMatrix(this.comparisons(), this.criteria());
     const eigenVector = this.calculateEigenVector(matrix);
     const result = this.calculateConsistencyRatio(matrix, eigenVector.weights);
 
-    this.results = {
+    this.results.set({
       pairwiseMatrix: matrix,
       pairwiseSumMatrix: eigenVector.columnSums,
       weightsMatrix: eigenVector.weightsMatrix,
@@ -476,30 +482,31 @@ export class AhpComponent implements OnInit {
       cr: result.cr,
       ci: result.ci,
       statusCr: result.cr <= 0.1 ? 'Baik' : 'Buruk',
-    };
+    });
 
     const newWeights: { [key: string]: number } = {};
-    this.criteria.forEach((criterion, index) => {
+    this.criteria().forEach((criterion, index) => {
       newWeights[criterion.id] = eigenVector.weights[index] || 0;
     });
 
-    this.weights = newWeights;
-    this.consistencyRatio = result.cr;
+    this.weights.set(newWeights);
+    this.consistencyRatio.set(result.cr);
 
     const newSubcriteriaWeights: {
       [criteriaId: string]: { [subcriteriaId: string]: number };
     } = {};
     const newSubcriteriaConsistencyRatios: { [criteriaId: string]: number } =
       {};
+    const newResultsCriteria: AhpResults[] = [];
 
-    this.criteria.forEach((criterion) => {
-      const criteriaSubcriteria = this.subcriteria.filter(
+    this.criteria().forEach((criterion) => {
+      const criteriaSubcriteria = this.subcriteria().filter(
         (s) => s.criteriaId === criterion.id
       );
 
       if (criteriaSubcriteria.length > 1) {
         const subMatrix = this.createSubcriteriaMatrix(
-          this.subcriteriaComparisons,
+          this.subcriteriaComparisons(),
           criterion.id
         );
         const subEigenVector = this.calculateEigenVector(subMatrix);
@@ -508,7 +515,7 @@ export class AhpComponent implements OnInit {
           subEigenVector.weights
         );
 
-        this.resultsCriteria.push({
+        newResultsCriteria.push({
           pairwiseMatrix: subMatrix,
           pairwiseSumMatrix: subEigenVector.columnSums,
           weightsMatrix: subEigenVector.weightsMatrix,
@@ -537,8 +544,9 @@ export class AhpComponent implements OnInit {
       }
     });
 
-    this.subcriteriaWeights = newSubcriteriaWeights;
-    this.subcriteriaConsistencyRatios = newSubcriteriaConsistencyRatios;
+    this.resultsCriteria.set(newResultsCriteria);
+    this.subcriteriaWeights.set(newSubcriteriaWeights);
+    this.subcriteriaConsistencyRatios.set(newSubcriteriaConsistencyRatios);
   }
 
   handleComparisonChange(
@@ -546,16 +554,19 @@ export class AhpComponent implements OnInit {
     criteriaB: string,
     value: number
   ): void {
-    const index = this.comparisons.findIndex(
+    const currentComparisons = [...this.comparisons()];
+    const index = currentComparisons.findIndex(
       (c) =>
         (c.criteriaA === criteriaA && c.criteriaB === criteriaB) ||
         (c.criteriaA === criteriaB && c.criteriaB === criteriaA)
     );
+
     if (index > -1) {
-      this.comparisons.splice(index, 1);
+      currentComparisons.splice(index, 1);
     }
 
-    this.comparisons.push({ criteriaA, criteriaB, value });
+    currentComparisons.push({ criteriaA, criteriaB, value });
+    this.comparisons.set(currentComparisons);
   }
 
   handleSubcriteriaComparisonChange(
@@ -564,49 +575,57 @@ export class AhpComponent implements OnInit {
     subcriteriaB: string,
     value: number
   ): void {
-    const index = this.subcriteriaComparisons.findIndex(
+    const currentSubComparisons = [...this.subcriteriaComparisons()];
+    const index = currentSubComparisons.findIndex(
       (c) =>
         c.criteriaId === criteriaId &&
         ((c.subcriteriaA === subcriteriaA && c.subcriteriaB === subcriteriaB) ||
           (c.subcriteriaA === subcriteriaB && c.subcriteriaB === subcriteriaA))
     );
+
     if (index > -1) {
-      this.subcriteriaComparisons.splice(index, 1);
+      currentSubComparisons.splice(index, 1);
     }
-    this.subcriteriaComparisons.push({
+
+    currentSubComparisons.push({
       criteriaId,
       subcriteriaA,
       subcriteriaB,
       value,
     });
+
+    this.subcriteriaComparisons.set(currentSubComparisons);
   }
 
   resetComparisons(): void {
-    this.comparisons = [];
-    this.subcriteriaComparisons = [];
-    this.weights = {};
-    this.subcriteriaWeights = {};
-    this.consistencyRatio = 0;
-    this.subcriteriaConsistencyRatios = {};
+    this.currentStep.set(1);
+    this.comparisons.set([]);
+    this.subcriteriaComparisons.set([]);
+    this.weights.set({});
+    this.subcriteriaWeights.set({});
+    this.consistencyRatio.set(0);
+    this.subcriteriaConsistencyRatios.set({});
   }
 
   async saveWeights(): Promise<void> {
-    if (!this.saveName.trim()) return;
+    const name = this.saveName.trim();
+    if (!name) return;
 
     const newSavedWeights: Omit<AHPWeights, 'id'> = {
-      name: this.saveName.trim(),
-      weights: this.weights,
-      subcriteriaWeights: this.subcriteriaWeights,
-      consistencyRatio: this.consistencyRatio,
-      subcriteriaConsistencyRatios: this.subcriteriaConsistencyRatios,
+      name,
+      weights: this.weights(),
+      subcriteriaWeights: this.subcriteriaWeights(),
+      consistencyRatio: this.consistencyRatio(),
+      subcriteriaConsistencyRatios: this.subcriteriaConsistencyRatios(),
       createdAt: new Date(),
       isActive: false,
     };
 
     try {
       await this.ahpService.addWeights(newSavedWeights);
-      this.showSaveModal = false;
+      this.showSaveModal.set(false);
       this.saveName = '';
+      this.resetComparisons();
     } catch (error) {
       console.error('Error saving weights:', error);
     }
@@ -629,7 +648,7 @@ export class AhpComponent implements OnInit {
   }
 
   getSlicedCriteria(index: number): Criteria[] {
-    return this.criteria.slice(index + 1);
+    return this.criteria().slice(index + 1);
   }
 
   getSlicedSubcriteria(
@@ -640,11 +659,13 @@ export class AhpComponent implements OnInit {
   }
 
   toggleCriteriaExpansion(criteriaId: string): void {
-    this.expandedCriteria[criteriaId] = !this.expandedCriteria[criteriaId];
+    const currentExpanded = { ...this.expandedCriteria() };
+    currentExpanded[criteriaId] = !currentExpanded[criteriaId];
+    this.expandedCriteria.set(currentExpanded);
   }
 
   getComparisonValue(criteriaA: string, criteriaB: string): number {
-    const comparison = this.comparisons.find(
+    const comparison = this.comparisons().find(
       (c) =>
         (c.criteriaA === criteriaA && c.criteriaB === criteriaB) ||
         (c.criteriaA === criteriaB && c.criteriaB === criteriaA)
@@ -657,7 +678,7 @@ export class AhpComponent implements OnInit {
     subcriteriaA: string,
     subcriteriaB: string
   ): number {
-    const comparison = this.subcriteriaComparisons.find(
+    const comparison = this.subcriteriaComparisons().find(
       (c) =>
         c.criteriaId === criteriaId &&
         ((c.subcriteriaA === subcriteriaA && c.subcriteriaB === subcriteriaB) ||
@@ -667,41 +688,41 @@ export class AhpComponent implements OnInit {
   }
 
   getSubcriteriaForCriteria(criteriaId: string): Subcriteria[] {
-    return this.subcriteria.filter((s) => s.criteriaId === criteriaId);
+    return this.subcriteria().filter((s) => s.criteriaId === criteriaId);
   }
 
   getSubWeight(criterionId: string, subId: string): number {
-    return this.subcriteriaWeights?.[criterionId]?.[subId] ?? 0;
+    return this.subcriteriaWeights()?.[criterionId]?.[subId] ?? 0;
   }
 
   getWeight(criterionId: string, subId: string): number {
     return (
-      (this.weights?.[criterionId] ?? 0) *
-      (this.subcriteriaWeights?.[criterionId]?.[subId] ?? 0)
+      (this.weights()?.[criterionId] ?? 0) *
+      (this.subcriteriaWeights()?.[criterionId]?.[subId] ?? 0)
     );
   }
 
-  getValueSub(criteriaId: string, idA: string, idB: string) {
+  getValueSub(criteriaId: string, idA: string, idB: string): number {
     return this.scaleValues.findIndex(
       (s) =>
         s.value === this.getSubcriteriaComparisonValue(criteriaId, idA, idB)
     );
   }
 
-  getDescSub(criteriaId: string, idA: string, idB: string) {
+  getDescSub(criteriaId: string, idA: string, idB: string): string | undefined {
     return this.scaleValues.find(
       (s) =>
         s.value === this.getSubcriteriaComparisonValue(criteriaId, idA, idB)
     )?.description;
   }
 
-  getValue(idA: string, idB: string) {
+  getValue(idA: string, idB: string): number {
     return this.scaleValues.findIndex(
       (s) => s.value === this.getComparisonValue(idA, idB)
     );
   }
 
-  getDesc(idA: string, idB: string) {
+  getDesc(idA: string, idB: string): string | undefined {
     return this.scaleValues.find(
       (s) => s.value === this.getComparisonValue(idA, idB)
     )?.description;
@@ -713,7 +734,7 @@ export class AhpComponent implements OnInit {
     return selectedScale?.value || 1;
   }
 
-  getPreviousSubcriteriaValue(oldId: string, currentId: string) {
+  getPreviousSubcriteriaValue(oldId: string, currentId: string): void {
     const oldValue: number[] = [];
     const subA = this.getSubcriteriaForCriteria(oldId);
     subA.forEach((sa, i) => {
@@ -748,10 +769,12 @@ export class AhpComponent implements OnInit {
   }
 
   toggleMatrices(): void {
-    this.showMatrices = !this.showMatrices;
+    this.showMatrices.update((show) => !show);
   }
 
   toggleMatricesSub(index: number): void {
-    this.showMatricesSubcriteria[index] = !this.showMatricesSubcriteria[index];
+    const currentMatrices = [...this.showMatricesSubcriteria()];
+    currentMatrices[index] = !currentMatrices[index];
+    this.showMatricesSubcriteria.set(currentMatrices);
   }
 }
