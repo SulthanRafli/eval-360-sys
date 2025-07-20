@@ -7,6 +7,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  query,
+  orderBy,
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Employee } from '../models/app.types';
@@ -25,7 +27,9 @@ export class EmployeeService {
    * @returns An observable of the Employee array.
    */
   getEmployees(): Observable<Employee[]> {
-    return collectionData(this.employeesCollection, {
+    const orderedCollection = query(this.employeesCollection, orderBy('name'));
+
+    return collectionData(orderedCollection, {
       idField: 'id',
     }) as Observable<Employee[]>;
   }
@@ -45,7 +49,7 @@ export class EmployeeService {
    * @param data The partial data to update.
    * @returns A promise that resolves when the update is complete.
    */
-  updateEmployee(id: string, data: Partial<Employee>): Promise<void> {
+  updateEmployee(id: string, data: Omit<Employee, 'id'>): Promise<void> {
     const docRef = doc(this.employeesCollection, id);
     return updateDoc(docRef, data);
   }

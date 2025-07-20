@@ -41,13 +41,11 @@ export class CriteriaComponent implements OnInit {
 
   // Component state
   criteria: Criteria[] = [];
+  editingCriteria: Criteria | null = null;
+  editingQuestion: Question | null = null;
   isLoading = true;
   showCriteriaForm = false;
   showQuestionForm = false;
-  editingCriteria: Criteria | null = null;
-  editingQuestion: Question | null = null;
-  selectedCriteriaId = '';
-  showResetModal = false;
   showDeleteModal = false;
   itemToDelete: {
     type: 'criteria' | 'subcriteria';
@@ -199,9 +197,7 @@ export class CriteriaComponent implements OnInit {
       code: '',
       text: '',
       criteriaId:
-        criteriaId ||
-        this.selectedCriteriaId ||
-        (this.criteria.length > 0 ? this.criteria[0].id : ''),
+        criteriaId || (this.criteria.length > 0 ? this.criteria[0].id : ''),
     };
     this.errors = {};
     this.showQuestionForm = true;
@@ -314,13 +310,5 @@ export class CriteriaComponent implements OnInit {
   closeDeleteModal(): void {
     this.showDeleteModal = false;
     this.itemToDelete = null;
-  }
-
-  openResetModal(): void {
-    this.showResetModal = true;
-  }
-
-  closeResetModal(): void {
-    this.showResetModal = false;
   }
 }

@@ -15,31 +15,317 @@
     </button>
   </div>
 
-  <app-employee-filters
-    [filterForm]="filterForm"
-    [filters]="filtersSignal"
-    [positions]="positions()"
-    [levels]="levels()"
-    [supervisors]="supervisors()"
-    (clearFilters)="onClearFilters()"
-  ></app-employee-filters>
+  <div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 sm:p-6" [formGroup]="filterForm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900 flex items-center">
+          <lucide-angular class="w-4 h-4 mr-2" [img]="Funnel"></lucide-angular>
+          Filter & Pencarian
+        </h3>
+        @if (hasActiveFilters()) {
+        <button
+          (click)="onClearFilters()"
+          class="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+        >
+          <lucide-angular class="w-4 h-4 mr-1" [img]="X"></lucide-angular>
+          Hapus Filter
+        </button>
+        }
+      </div>
+
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4"
+      >
+        <!-- Search -->
+        <div class="xl:col-span-2">
+          <label
+            for="search"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Pencarian</label
+          >
+          <div class="relative">
+            <div
+              class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+            >
+              <lucide-angular
+                class="w-4 h-4 mr-1 text-gray-500"
+                [img]="Search"
+              ></lucide-angular>
+            </div>
+            <input
+              id="search"
+              type="text"
+              formControlName="search"
+              class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm placeholder:text-gray-400"
+              placeholder="Nama atau email..."
+            />
+          </div>
+        </div>
+
+        <!-- Position -->
+        <div>
+          <label
+            for="position"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Posisi</label
+          >
+          <select
+            id="position"
+            formControlName="position"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          >
+            <option value="">Semua Posisi</option>
+            @for(pos of positions(); track pos) {
+            <option [value]="pos">{{ pos }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Level -->
+        <div>
+          <label
+            for="level"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Level</label
+          >
+          <select
+            id="level"
+            formControlName="level"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          >
+            <option value="">Semua Level</option>
+            @for(lvl of levels(); track lvl) {
+            <option [value]="lvl" class="capitalize">{{ lvl }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Supervisor -->
+        <div>
+          <label
+            for="supervisor"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Atasan</label
+          >
+          <select
+            id="supervisor"
+            formControlName="supervisor"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          >
+            <option value="">Semua</option>
+            <option value="none">Tanpa Atasan</option>
+            @for(sup of supervisors(); track sup.id) {
+            <option [value]="sup.id">{{ sup.name }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Has Teammates -->
+        <div>
+          <label
+            for="hasTeammates"
+            class="block text-sm font-medium text-gray-700 mb-1"
+            >Rekan Kerja</label
+          >
+          <select
+            id="hasTeammates"
+            formControlName="hasTeammates"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+          >
+            <option value="">Semua</option>
+            <option value="yes">Ada Rekan Kerja</option>
+            <option value="no">Tanpa Rekan Kerja</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Active Filters Display -->
+      @if (hasActiveFilters()) {
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <div class="flex flex-wrap gap-2 items-center">
+          <span class="text-sm text-gray-500">Filter aktif:</span>
+          @if(filtersSignal()?.search) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+          >
+            Pencarian: "{{ filtersSignal()?.search }}"
+            <button
+              (click)="onRemoveFilter('search')"
+              class="ml-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <lucide-angular class="w-4 h-4" [img]="X"></lucide-angular>
+            </button>
+          </span>
+          } @if(filtersSignal()?.position) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+          >
+            Posisi: {{ filtersSignal()?.position }}
+            <button
+              (click)="onRemoveFilter('position')"
+              class="ml-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <lucide-angular class="w-4 h-4" [img]="X"></lucide-angular>
+            </button>
+          </span>
+          } @if(filtersSignal()?.level) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize"
+          >
+            Level: {{ filtersSignal()?.level }}
+            <button
+              (click)="onRemoveFilter('level')"
+              class="ml-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <lucide-angular class="w-4 h-4" [img]="X"></lucide-angular>
+            </button>
+          </span>
+          } @if(filtersSignal()?.supervisor) {
+          <span
+            class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+          >
+            Atasan:
+            {{
+              filtersSignal()?.supervisor === "none"
+                ? "Tanpa Atasan"
+                : getSupervisorName(filtersSignal()?.supervisor)
+            }}
+            <button
+              (click)="onRemoveFilter('supervisor')"
+              class="ml-1.5 text-gray-400 hover:text-gray-600 cursor-pointer"
+            >
+              <lucide-angular class="w-4 h-4" [img]="X"></lucide-angular>
+            </button>
+          </span>
+          }
+        </div>
+      </div>
+      }
+    </div>
+  </div>
 
   <!-- Responsive Grid for Employee Cards -->
   <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-4">
     @for (employee of filteredEmployees(); track employee.id) {
-    <app-employee-card
-      [employee]="employee"
-      [supervisorName]="
-        employee.supervisor
-          ? employeesMap().get(employee.supervisor)?.name
-          : undefined
-      "
-      [teammateNames]="getNamesByIds(employee.teammates)"
-      [subordinateNames]="getNamesByIds(employee.subordinates)"
-      (view)="onViewEmployee($event)"
-      (edit)="onEditEmployee($event)"
-      (delete)="onDeleteEmployee($event)"
-    ></app-employee-card>
+    <div
+      class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden flex flex-col h-full"
+    >
+      <!-- Header -->
+      <div class="px-6 py-4 border-b border-gray-200">
+        <div class="flex items-start justify-between">
+          <div class="flex items-center">
+            <div
+              class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
+            >
+              <span class="text-white font-medium text-lg">{{
+                initials(employee.name)
+              }}</span>
+            </div>
+            <div class="ml-4">
+              <div class="flex items-center flex-wrap">
+                <h3 class="text-lg font-semibold text-gray-900 mr-2">
+                  {{ employee.name }}
+                </h3>
+                <span
+                  class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                  [ngClass]="levelBadgeColor(employee.level)"
+                >
+                  {{ employee.level }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600">{{ employee.position }}</p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex space-x-1 flex-shrink-0 ml-2">
+            <button
+              (click)="onViewEmployee(employee)"
+              class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
+              title="Lihat Detail"
+            >
+              <lucide-angular [img]="Eye" class="w-4 h-4"></lucide-angular>
+            </button>
+            <button
+              (click)="onEditEmployee(employee)"
+              class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors cursor-pointer"
+              title="Edit"
+            >
+              <lucide-angular
+                [img]="SquarePen"
+                class="w-4 h-4"
+              ></lucide-angular>
+            </button>
+            <button
+              (click)="onDeleteEmployee(employee)"
+              class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+              title="Hapus"
+            >
+              <lucide-angular [img]="Trash2" class="w-4 h-4"></lucide-angular>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="px-6 py-4 space-y-3 flex-grow">
+        <!-- Email -->
+        <div class="flex items-center text-sm text-gray-600">
+          <lucide-angular [img]="Mail" class="w-4 h-4 mr-1"></lucide-angular>
+          <span class="truncate">{{ employee.email }}</span>
+        </div>
+
+        <!-- Supervisor -->
+        @if (employee.supervisor ? employeesMap().get(employee.supervisor)?.name
+        : undefined) {
+        <div class="flex items-center text-sm text-gray-600">
+          <lucide-angular
+            [img]="UserRound"
+            class="w-4 h-4 mr-1"
+          ></lucide-angular>
+          <span
+            >Atasan:
+            {{
+              employee.supervisor
+                ? employeesMap().get(employee.supervisor)?.name
+                : ""
+            }}</span
+          >
+        </div>
+        }
+      </div>
+
+      <!-- Footer with Team Info -->
+      <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="text-center">
+            <div class="flex items-center justify-center text-blue-600 mb-1">
+              <lucide-angular
+                [img]="UsersRound"
+                class="w-4 h-4 mr-1"
+              ></lucide-angular>
+              <span class="text-sm font-medium">Rekan Kerja</span>
+            </div>
+            <div class="text-lg font-bold text-gray-900">
+              {{ employee.teammates.length }}
+            </div>
+          </div>
+
+          <div class="text-center">
+            <div class="flex items-center justify-center text-green-600 mb-1">
+              <lucide-angular
+                [img]="UsersRound"
+                class="w-4 h-4 mr-1"
+              ></lucide-angular>
+              <span class="text-sm font-medium">Bawahan</span>
+            </div>
+            <div class="text-lg font-bold text-gray-900">
+              {{ employee.subordinates.length }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     } @empty {
     <div
       class="md:col-span-2 xl:col-span-3 bg-white rounded-lg shadow-md p-12 text-center text-gray-500 flex flex-col items-center"
@@ -60,20 +346,448 @@
 </div>
 
 <!-- Modals -->
-<app-delete-confirm-modal
-  [isOpen]="isDeleteModalOpen()"
-  [employee]="employeeToDelete()"
-  (closeModal)="onDeleteModalClose()"
-  (confirm)="onDeleteModalConfirm()"
+@if (isDeleteModalOpen() && employeeToDelete()) {
+<div
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm overflow-y-auto h-full w-full z-50 flex items-center justify-center"
+  (click)="onDeleteModalClose()"
+  (keydown.escape)="onDeleteModalClose()"
 >
-</app-delete-confirm-modal>
+  <div class="relative top-0 mx-auto p-5 w-96 shadow-lg rounded-md bg-white">
+    <div
+      class="flex items-center justify-between pb-4 border-b border-gray-400"
+    >
+      <div class="flex items-center">
+        <div
+          class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100"
+        >
+          <lucide-angular
+            [img]="TriangleAlert"
+            class="h-6 w-6 text-red-600"
+          ></lucide-angular>
+        </div>
+        <div class="ml-4">
+          <h3 class="text-lg font-medium text-gray-900">Konfirmasi Hapus</h3>
+        </div>
+      </div>
+      <button
+        (click)="onDeleteModalClose()"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+      >
+        <lucide-angular [img]="X" class="w-6 h-6"></lucide-angular>
+      </button>
+    </div>
+    <div class="mt-4">
+      <p class="text-sm text-gray-500 mb-4">
+        Apakah Anda yakin ingin menghapus karyawan berikut?
+      </p>
+      <div class="bg-gray-50 rounded-lg p-4 mb-4">
+        <div class="flex items-center">
+          <div
+            class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"
+          >
+            <span class="text-white font-medium text-sm">{{
+              initials(employeeToDelete()?.name)
+            }}</span>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-900">
+              {{ employeeToDelete()?.name }}
+            </p>
+            <p class="text-sm text-gray-500">
+              {{ employeeToDelete()?.position }}
+            </p>
+            <p class="text-xs text-gray-400">{{ employeeToDelete()?.email }}</p>
+          </div>
+        </div>
+      </div>
+      <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <lucide-angular
+              [img]="TriangleAlert"
+              class="h-5 w-5 text-yellow-400"
+            ></lucide-angular>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800">Peringatan</h3>
+            <div class="mt-2 text-sm text-yellow-700">
+              <ul class="list-disc list-inside space-y-1">
+                <li>Data karyawan akan dihapus secara permanen</li>
+                <li>Semua evaluasi terkait akan terpengaruh</li>
+                <li>Hubungan tim (atasan/bawahan) akan diputus</li>
+                <li>Tindakan ini tidak dapat dibatalkan</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex justify-end space-x-4 pt-4 border-t border-gray-400">
+      <button
+        (click)="onDeleteModalClose()"
+        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
+      >
+        Batal
+      </button>
+      <button
+        (click)="onDeleteModalConfirm()"
+        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 cursor-pointer"
+      >
+        Hapus Karyawan
+      </button>
+    </div>
+  </div>
+</div>
+} @if (isFormModalOpen()) {
+<div
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  (click)="onFormModalClose()"
+  (keydown.escape)="onFormModalClose()"
+  tabindex="0"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-labelledby]="'modal-title-' + formMode()"
+>
+  <div
+    class="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-lg shadow-2xl border border-gray-200 animate-in zoom-in-95 duration-200 overflow-hidden"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div
+      class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50"
+    >
+      <h3
+        [id]="'modal-title-' + formMode()"
+        class="text-xl font-semibold text-gray-900 flex items-center gap-2"
+      >
+        @switch (formMode()) { @case ('create') { Tambah Karyawan Baru } @case
+        ('edit') { Edit Karyawan } @case ('view') { Detail Karyawan } }
+      </h3>
+      <button
+        (click)="onFormModalClose()"
+        class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer cursor-pointer"
+        aria-label="Tutup modal"
+      >
+        <lucide-angular class="w-5 h-5" [img]="X"></lucide-angular>
+      </button>
+    </div>
 
-<app-employee-form-modal
-  [isOpen]="isFormModalOpen()"
-  [mode]="formMode()"
-  [employee]="selectedEmployee()"
-  [allEmployees]="allEmployees"
-  (closeModal)="onFormModalClose()"
-  (save)="onSaveEmployee($event)"
->
-</app-employee-form-modal>
+    <!-- Content - Scrollable -->
+    <div class="overflow-y-auto max-h-[calc(90vh-140px)]">
+      <form
+        [formGroup]="employeeForm"
+        (ngSubmit)="onSaveEmployee()"
+        class="p-6"
+      >
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Left Column: Basic & Job Info -->
+          <div class="space-y-6">
+            <!-- Basic Information -->
+            <fieldset
+              class="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
+            >
+              <legend class="text-sm font-semibold text-gray-900 px-2 bg-white">
+                Informasi Dasar
+              </legend>
+
+              <!-- Name Field -->
+              <div>
+                <label
+                  for="name"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Nama Lengkap
+                  <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  formControlName="name"
+                  [readonly]="formMode() === 'view'"
+                  class="w-full px-3 py-2 border rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400"
+                  [ngClass]="{
+                    'border-red-300 bg-red-50':
+                      employeeForm.get('name')?.invalid &&
+                      employeeForm.get('name')?.touched,
+                    'border-gray-300 bg-white':
+                      !employeeForm.get('name')?.invalid ||
+                      !employeeForm.get('name')?.touched,
+                    'bg-gray-100 cursor-not-allowed': formMode() === 'view'
+                  }"
+                  placeholder="Masukkan nama lengkap"
+                />
+                @if(employeeForm.get('name')?.invalid &&
+                employeeForm.get('name')?.touched) {
+                <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+                  <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+                  Nama wajib diisi
+                </div>
+                }
+              </div>
+
+              <!-- Email Field -->
+              <div>
+                <label
+                  for="email"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Email
+                  <span class="text-red-500">*</span>
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  formControlName="email"
+                  [readonly]="formMode() === 'view'"
+                  class="w-full px-3 py-2 border rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-400"
+                  [ngClass]="{
+                    'border-red-300 bg-red-50':
+                      employeeForm.get('email')?.invalid &&
+                      employeeForm.get('email')?.touched,
+                    'border-gray-300 bg-white':
+                      !employeeForm.get('email')?.invalid ||
+                      !employeeForm.get('email')?.touched,
+                    'bg-gray-100 cursor-not-allowed': formMode() === 'view'
+                  }"
+                  placeholder="contoh@email.com"
+                />
+                @if(employeeForm.get('email')?.hasError('required') &&
+                employeeForm.get('email')?.touched) {
+                <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+                  <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+                  Email wajib diisi
+                </div>
+                } @if(employeeForm.get('email')?.hasError('email') &&
+                employeeForm.get('email')?.touched) {
+                <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+                  <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+                  Format email tidak valid
+                </div>
+                }
+              </div>
+            </fieldset>
+
+            <!-- Job Information -->
+            <fieldset
+              class="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
+            >
+              <legend class="text-sm font-semibold text-gray-900 px-2 bg-white">
+                Informasi Pekerjaan
+              </legend>
+
+              <!-- Position Field -->
+              <div>
+                <label
+                  for="position"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Posisi
+                </label>
+                <select
+                  id="position"
+                  formControlName="position"
+                  [disabled]="formMode() === 'view'"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [ngClass]="{
+                    'bg-gray-100 cursor-not-allowed': formMode() === 'view',
+                    'bg-white': formMode() !== 'view'
+                  }"
+                >
+                  <option value="">Pilih posisi</option>
+                  @for(pos of positions(); track pos) {
+                  <option [value]="pos">{{ pos }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Level Field -->
+              <div>
+                <label
+                  for="level"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Level
+                </label>
+                <select
+                  id="level"
+                  formControlName="level"
+                  [disabled]="formMode() === 'view'"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 capitalize"
+                  [ngClass]="{
+                    'bg-gray-100 cursor-not-allowed': formMode() === 'view',
+                    'bg-white': formMode() !== 'view'
+                  }"
+                >
+                  <option value="">Pilih level</option>
+                  @for(lvl of levels(); track lvl) {
+                  <option [value]="lvl">{{ lvl }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Department Field -->
+              <div>
+                <label
+                  for="department"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Departemen
+                </label>
+                <input
+                  id="department"
+                  type="text"
+                  formControlName="department"
+                  readonly
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 cursor-not-allowed placeholder:text-gray-400"
+                  placeholder="Departemen otomatis"
+                />
+              </div>
+            </fieldset>
+          </div>
+
+          <!-- Right Column: Relationships -->
+          <div class="space-y-6">
+            <fieldset
+              class="space-y-4 p-4 border border-gray-200 rounded-lg bg-gray-50 h-fit"
+            >
+              <legend class="text-sm font-semibold text-gray-900 px-2 bg-white">
+                Hubungan Tim
+              </legend>
+
+              <!-- Supervisor Field -->
+              <div>
+                <label
+                  for="supervisor"
+                  class="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Atasan
+                </label>
+                <select
+                  id="supervisor"
+                  formControlName="supervisor"
+                  [disabled]="formMode() === 'view'"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  [ngClass]="{
+                    'bg-gray-100 cursor-not-allowed': formMode() === 'view',
+                    'bg-white': formMode() !== 'view'
+                  }"
+                  placeholder=""
+                >
+                  <option [ngValue]="null">Pilih atasan (opsional)</option>
+                  @for(sup of availableSupervisors(); track sup.id) {
+                  <option [value]="sup.id">{{ sup.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Teammates Field -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Rekan Kerja
+                </label>
+                <div
+                  class="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white"
+                >
+                  @if(availableEmployees().length === 0) {
+                  <p class="text-sm text-gray-500 text-center py-2">
+                    Tidak ada rekan kerja tersedia
+                  </p>
+                  } @else {
+                  <div class="grid grid-cols-1 gap-2">
+                    @for(emp of availableEmployees(); track emp.id) {
+                    <label
+                      class="flex items-center space-x-2 p-2 rounded hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        [value]="emp.id"
+                        [checked]="isIdChecked('teammates', emp.id)"
+                        (change)="onCheckboxChange($event, 'teammates')"
+                        [disabled]="formMode() === 'view'"
+                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                      />
+                      <span class="text-sm text-gray-700 select-none">{{
+                        emp.name
+                      }}</span>
+                    </label>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Subordinates Field -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  Bawahan
+                </label>
+                <div
+                  class="max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 bg-white"
+                >
+                  @if(availableJunior().length === 0) {
+                  <p class="text-sm text-gray-500 text-center py-2">
+                    Tidak ada bawahan tersedia
+                  </p>
+                  } @else {
+                  <div class="grid grid-cols-1 gap-2">
+                    @for(emp of availableJunior(); track emp.id) {
+                    <label
+                      class="flex items-center space-x-2 p-2 rounded hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        [value]="emp.id"
+                        [checked]="isIdChecked('subordinates', emp.id)"
+                        (change)="onCheckboxChange($event, 'subordinates')"
+                        [disabled]="formMode() === 'view'"
+                        class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-2 disabled:bg-gray-200 disabled:cursor-not-allowed"
+                      />
+                      <span class="text-sm text-gray-700 select-none">{{
+                        emp.name
+                      }}</span>
+                    </label>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        @if (formMode() !== 'view') {
+        <div
+          class="mt-8 flex justify-end space-x-3 pt-6 border-t border-gray-200"
+        >
+          <button
+            type="button"
+            (click)="onFormModalClose()"
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 cursor-pointer"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            [disabled]="employeeForm.invalid"
+            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors duration-200 cursor-pointer"
+          >
+            @if(formMode() === 'create') { Simpan } @else { Update }
+          </button>
+        </div>
+        } @else {
+        <div class="mt-8 flex justify-end pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            (click)="onFormModalClose()"
+            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 cursor-pointer"
+          >
+            Tutup
+          </button>
+        </div>
+        }
+      </form>
+    </div>
+  </div>
+</div>
+}
