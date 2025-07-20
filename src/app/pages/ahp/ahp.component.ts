@@ -1,11 +1,4 @@
-import {
-  Component,
-  inject,
-  OnInit,
-  signal,
-  computed,
-  effect,
-} from '@angular/core';
+import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -23,14 +16,13 @@ import {
   AhpResults,
   AHPWeights,
   Criteria,
-  Header,
   Subcriteria,
   SubcriteriaComparison,
 } from '../../shared/models/app.types';
-import { Subscription } from 'rxjs';
 import { AhpService } from '../../shared/services/ahp.service';
 import { CriteriaService } from '../../shared/services/criteria.service';
 import { RouterModule } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-ahp',
@@ -46,11 +38,10 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./ahp.component.css'],
   providers: [DatePipe],
 })
-export class AhpComponent implements OnInit {
+export class AhpComponent {
   // Injected Services
   private criteriaService = inject(CriteriaService);
   private ahpService = inject(AhpService);
-  private subscriptions = new Subscription();
 
   // Icons
   readonly Info = Info;
@@ -60,11 +51,15 @@ export class AhpComponent implements OnInit {
   readonly FileText = FileText;
   readonly Plus = Plus;
 
+  private criteria$ = this.criteriaService.getCriteria();
+  private savedWeights$ = this.ahpService.getSavedWeights();
+
+  public criteria = toSignal(this.criteria$, { initialValue: [] });
+  public savedWeights = toSignal(this.savedWeights$, { initialValue: [] });
+
   // Signals for reactive state management
   isLoading = signal(true);
   currentStep = signal(1);
-  criteria = signal<Criteria[]>([]);
-  subcriteria = signal<Subcriteria[]>([]);
   comparisons = signal<AHPComparison[]>([]);
   subcriteriaComparisons = signal<SubcriteriaComparison[]>([]);
   weights = signal<{ [key: string]: number }>({});
@@ -73,7 +68,6 @@ export class AhpComponent implements OnInit {
   }>({});
   consistencyRatio = signal(0);
   subcriteriaConsistencyRatios = signal<{ [criteriaId: string]: number }>({});
-  savedWeights = signal<AHPWeights[]>([]);
 
   // UI State signals
   showSaveModal = signal(false);
@@ -253,46 +247,20 @@ export class AhpComponent implements OnInit {
     },
   ];
 
-  ngOnInit(): void {
-    this.loadInitialData();
-  }
-
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
-
-  private loadInitialData(): void {
-    this.isLoading.set(true);
-
-    const criteriaSub = this.criteriaService
-      .getCriteria()
-      .subscribe((criteria) => {
-        this.criteria.set(criteria);
-        this.isLoading.set(false);
-
-        const initialSubcriteria: Subcriteria[] = [];
-        criteria.forEach((criteriaItem) => {
-          this.defaultSubscriteria.forEach((subcriteria) => {
-            initialSubcriteria.push({
-              id: `${criteriaItem.id}-${subcriteria.code}`,
-              code: subcriteria.code,
-              name: subcriteria.name,
-              criteriaId: criteriaItem.id,
-            });
-          });
+  subcriteria = computed(() => {
+    const initialSubcriteria: Subcriteria[] = [];
+    this.criteria().forEach((criteriaItem) => {
+      this.defaultSubscriteria.forEach((subcriteria) => {
+        initialSubcriteria.push({
+          id: `${criteriaItem.id}-${subcriteria.code}`,
+          code: subcriteria.code,
+          name: subcriteria.name,
+          criteriaId: criteriaItem.id,
         });
-        this.subcriteria.set(initialSubcriteria);
       });
-
-    const weightsSub = this.ahpService
-      .getSavedWeights()
-      .subscribe((weights) => {
-        this.savedWeights.set(weights);
-      });
-
-    this.subscriptions.add(criteriaSub);
-    this.subscriptions.add(weightsSub);
-  }
+    });
+    return initialSubcriteria;
+  });
 
   formatCreatedAt(timestamp: any): Date {
     const date = new Date(timestamp.seconds * 1000);
