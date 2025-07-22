@@ -17,14 +17,17 @@ export interface SubcriteriaScore {
 export interface CriteriaScore {
   criteriaId: string;
   criteriaWeight: number;
-  subcriteriaScores: SubcriteriaScore[];
-  totalWeightedScore: number;
+  criteriaCode: string;
+  score: number;
+  scoreReal: number;
+  label: string;
 }
 
 export interface EmployeeAHPScore {
   employeeId: string;
   criteriaScores: CriteriaScore[];
   totalScore: number;
+  totalScoreReal: number;
   normalizedScore: number; // 0-100 scale
 }
 
@@ -113,59 +116,61 @@ function calculateConsistencyRatio(
  */
 export function calculateEmployeeAHPScore(
   employeeId: string,
-  evaluationResponses: { [questionId: string]: number },
+  evaluationResponses: { [criteriaId: string]: number },
   criteriaWeights: { [criteriaId: string]: number },
   subcriteriaWeights: {
     [criteriaId: string]: { [subcriteriaId: string]: number };
   },
-  criteriaSubcriteriaMapping: { [criteriaId: string]: string[] }
+  criteriaSubcriteriaMapping: Record<string, string>
 ): EmployeeAHPScore {
   const criteriaScores: CriteriaScore[] = [];
   let totalScore = 0;
+  let totalScoreReal = 0;
 
   // Calculate score for each criteria
   Object.keys(criteriaWeights).forEach((criteriaId) => {
+    const criteriaCode = criteriaSubcriteriaMapping[criteriaId];
+    const score = evaluationResponses[criteriaId] || 0;
+    const ratingConfig = ratingsMap.find(
+      (r) =>
+        score >= r.minValue && (r.maxValue === undefined || score < r.maxValue)
+    );
     const criteriaWeight = criteriaWeights[criteriaId];
-    const subcriteriaIds = criteriaSubcriteriaMapping[criteriaId] || [];
-    const subcriteriaScores: SubcriteriaScore[] = [];
-    let criteriaWeightedScore = 0;
+    const subcriteriaWeight = subcriteriaWeights[criteriaId];
+    let targetKey: string | undefined = undefined;
+    if (ratingConfig) {
+      targetKey = Object.keys(subcriteriaWeight).find((key) =>
+        key.endsWith(`-${ratingConfig.code}`)
+      );
+    }
 
-    // Calculate score for each subcriteria
-    subcriteriaIds.forEach((subcriteriaId) => {
-      const score = evaluationResponses[subcriteriaId] || 0;
-      const localWeight = subcriteriaWeights[criteriaId]?.[subcriteriaId] || 0;
-      const globalWeight = criteriaWeight * localWeight;
-      const weightedScore = score * globalWeight;
-
-      subcriteriaScores.push({
-        subcriteriaId,
-        score,
-        weight: localWeight,
-        globalWeight,
-        weightedScore,
-      });
-
-      criteriaWeightedScore += weightedScore;
-    });
+    const scorePriority = targetKey
+      ? subcriteriaWeight[targetKey] * criteriaWeight
+      : 0;
 
     criteriaScores.push({
       criteriaId,
       criteriaWeight,
-      subcriteriaScores,
-      totalWeightedScore: criteriaWeightedScore,
+      criteriaCode,
+      score: scorePriority,
+      scoreReal: score,
+      label: ratingConfig?.label || '-',
     });
 
-    totalScore += criteriaWeightedScore;
+    totalScore += scorePriority;
+    totalScoreReal += score;
   });
 
   // Normalize score to 0-100 scale (assuming max possible score is 5)
   const maxPossibleScore = 5;
   const normalizedScore = (totalScore / maxPossibleScore) * 100;
+  const finalTotalScore = totalScoreReal / Object.keys(criteriaWeights).length;
 
   return {
     employeeId,
-    criteriaScores,
+    criteriaScores: criteriaScores,
     totalScore,
+    totalScoreReal: finalTotalScore,
     normalizedScore,
   };
 }
@@ -181,7 +186,7 @@ export function calculateMultipleEmployeeScores(
   subcriteriaWeights: {
     [criteriaId: string]: { [subcriteriaId: string]: number };
   },
-  criteriaSubcriteriaMapping: { [criteriaId: string]: string[] }
+  criteriaSubcriteriaMapping: Record<string, string>
 ): EmployeeAHPScore[] {
   return Object.keys(employeeEvaluations)
     .map((employeeId) =>
@@ -258,13 +263,14 @@ export const SCALE_VALUES = {
 /**
  * Convert numeric values to scale labels
  */
-export const NUMERIC_TO_SCALE = {
-  1: 'SK',
-  2: 'K',
-  3: 'C',
-  4: 'B',
-  5: 'SB',
-};
+const ratingsMap = [
+  { label: 'Sangat Baik', code: 'SB', minValue: 4.2 },
+  { label: 'Baik', code: 'B', minValue: 3.4, maxValue: 4.2 },
+  { label: 'Cukup', code: 'C', minValue: 2.6, maxValue: 3.4 },
+  { label: 'Buruk', code: 'K', minValue: 1.8, maxValue: 2.6 },
+  { label: 'Sangat Buruk', code: 'SK', minValue: 1.0, maxValue: 1.8 },
+  { label: '-', code: '', minValue: 0, maxValue: 1.0 },
+];
 
 /**
  * Get scale description

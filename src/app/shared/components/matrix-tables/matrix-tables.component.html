@@ -9,7 +9,7 @@
           <th
             class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
           >
-            Kriteria
+            {{ customTitle || "Kriteria" }}
           </th>
           <ng-container *ngIf="showHeader">
             <th
@@ -30,6 +30,12 @@
             class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
           >
             Prioritas
+          </th>
+          <th
+            *ngIf="showPrioritySubcriteria"
+            class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+          >
+            Prioritas Subkriteria
           </th>
           <th
             *ngIf="showRatio"
@@ -81,6 +87,12 @@
               class="px-3 py-2 text-center text-sm font-medium text-blue-600 border-r border-gray-200"
             >
               {{ priorityValues[rowIndex] | number : "1.2-2" }}
+            </td>
+            <td
+              *ngIf="showPrioritySubcriteria && prioritySubcriteriaValues"
+              class="px-3 py-2 text-center text-sm font-medium text-blue-600 border-r border-gray-200"
+            >
+              {{ prioritySubcriteriaValues[rowIndex] | number : "1.2-2" }}
             </td>
           </ng-template>
           <td

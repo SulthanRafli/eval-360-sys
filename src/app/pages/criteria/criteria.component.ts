@@ -77,7 +77,6 @@ export class CriteriaComponent {
     return (this.totalQuestion / this.totalCriteria).toFixed(1);
   }
 
-  // Validation functions (remain mostly the same)
   validateCriteriaForm(): boolean {
     const newErrors: { [key: string]: string } = {};
     if (!this.criteriaForm().code.trim())
@@ -121,7 +120,6 @@ export class CriteriaComponent {
     return Object.keys(newErrors).length === 0;
   }
 
-  // --- CRUD Operations for Criteria ---
   handleCreateCriteria(): void {
     this.editingCriteria.set(null);
     this.criteriaForm.set({ code: '', name: '' });
@@ -155,7 +153,6 @@ export class CriteriaComponent {
       this.closeCriteriaForm();
     } catch (error) {
       console.error('Error saving criteria:', error);
-      // Optionally show an error message to the user
     }
   }
 
@@ -164,7 +161,6 @@ export class CriteriaComponent {
     this.showDeleteModal.set(true);
   }
 
-  // --- CRUD Operations for Question ---
   handleCreateQuestion(criteriaId?: string): void {
     this.editingQuestion.set(null);
     this.subcriteriaForm.set({
@@ -193,7 +189,6 @@ export class CriteriaComponent {
 
     try {
       if (this.editingQuestion()) {
-        // If the criteria ID has changed, we need to move the question
         if (
           this.editingQuestion()?.criteriaId !==
           this.subcriteriaForm()?.criteriaId
@@ -209,7 +204,6 @@ export class CriteriaComponent {
             this.subcriteriaForm().criteriaId
           );
         } else {
-          // Otherwise, just update the question in place
           const updatedQuestion: Question = {
             id: this.editingQuestion()?.id || '',
             code: this.subcriteriaForm().code,
@@ -222,9 +216,8 @@ export class CriteriaComponent {
           );
         }
       } else {
-        // Create new subcriteria
         const newQuestion: Question = {
-          id: `P${Date.now()}`, // Simple unique ID generation
+          id: `P${Date.now()}`,
           code: this.subcriteriaForm().code,
           text: this.subcriteriaForm().text,
           criteriaId: this.subcriteriaForm().criteriaId,
@@ -245,7 +238,6 @@ export class CriteriaComponent {
     this.showDeleteModal.set(true);
   }
 
-  // --- Modal Actions ---
   async confirmDelete(): Promise<void> {
     if (!this.itemToDelete()) return;
 
@@ -265,7 +257,6 @@ export class CriteriaComponent {
     }
   }
 
-  // --- UI Helper Methods ---
   closeCriteriaForm(): void {
     this.showCriteriaForm.set(true);
     this.editingCriteria.set(null);

@@ -10,7 +10,6 @@ import {
   LucideAngularModule,
   Plus,
 } from 'lucide-angular';
-import { MatrixTableComponent } from './components/matrix-tables/matrix-tables.component';
 import {
   AHPComparison,
   AhpResults,
@@ -23,6 +22,7 @@ import { AhpService } from '../../shared/services/ahp.service';
 import { CriteriaService } from '../../shared/services/criteria.service';
 import { RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatrixTableComponent } from '../../shared/components/matrix-tables/matrix-tables.component';
 
 @Component({
   selector: 'app-ahp',
@@ -226,24 +226,24 @@ export class AhpComponent {
   ];
   readonly defaultSubscriteria = [
     {
-      code: 'SK',
-      name: 'Sangat Kurang',
-    },
-    {
-      code: 'K',
-      name: 'Kurang',
-    },
-    {
-      code: 'C',
-      name: 'Cukup',
+      code: 'SB',
+      name: 'Sangat Baik',
     },
     {
       code: 'B',
       name: 'Baik',
     },
     {
-      code: 'SB',
-      name: 'Sangat Baik',
+      code: 'C',
+      name: 'Cukup',
+    },
+    {
+      code: 'K',
+      name: 'Kurang',
+    },
+    {
+      code: 'SK',
+      name: 'Sangat Kurang',
     },
   ];
 
@@ -482,6 +482,10 @@ export class AhpComponent {
           subMatrix,
           subEigenVector.weights
         );
+        const maxValue = Math.max(...subEigenVector.weights);
+        const weightSubcriteria = subEigenVector.weights.map(
+          (val) => val / maxValue
+        );
 
         newResultsCriteria.push({
           pairwiseMatrix: subMatrix,
@@ -489,6 +493,7 @@ export class AhpComponent {
           weightsMatrix: subEigenVector.weightsMatrix,
           sumWeightsMatrix: subEigenVector.rowSums,
           weights: subEigenVector.weights,
+          weightSubcriteria: weightSubcriteria,
           priorityRatios: resultSub.priorityRatios,
           everyRowMatrix: resultSub.matrixRow,
           sumEveryRowMatrix: resultSub.sumMatrixRow,
@@ -501,7 +506,7 @@ export class AhpComponent {
         newSubcriteriaWeights[criterion.id] = {};
         criteriaSubcriteria.forEach((sub, index) => {
           newSubcriteriaWeights[criterion.id][sub.id] =
-            subEigenVector.weights[index] || 0;
+            weightSubcriteria[index] || 0;
         });
 
         newSubcriteriaConsistencyRatios[criterion.id] = resultSub.cr;
@@ -702,38 +707,55 @@ export class AhpComponent {
     return selectedScale?.value || 1;
   }
 
-  getPreviousSubcriteriaValue(oldId: string, currentId: string): void {
-    const oldValue: number[] = [];
-    const subA = this.getSubcriteriaForCriteria(oldId);
-    subA.forEach((sa, i) => {
-      const subB = this.getSlicedSubcriteria(
-        this.getSubcriteriaForCriteria(oldId),
-        i
-      );
-      subB.forEach((sb, j) => {
-        const value = this.getValueSub(oldId, sa.id, sb.id);
-        const selectedScale = this.scaleValues[value];
-        oldValue.push(selectedScale?.value || 1);
-      });
-    });
-
-    let index = 0;
-    const subAC = this.getSubcriteriaForCriteria(currentId);
-    subAC.forEach((sa, i) => {
-      const subBC = this.getSlicedSubcriteria(
-        this.getSubcriteriaForCriteria(currentId),
-        i
-      );
-      subBC.forEach((sb, j) => {
-        this.handleSubcriteriaComparisonChange(
-          currentId,
-          sa.id,
-          sb.id,
-          oldValue[index]
+  getPreviousSubcriteriaValue(
+    oldId: string,
+    currentId: string,
+    event: any
+  ): void {
+    if (event.target.checked) {
+      const oldValue: number[] = [];
+      const subA = this.getSubcriteriaForCriteria(oldId);
+      subA.forEach((sa, i) => {
+        const subB = this.getSlicedSubcriteria(
+          this.getSubcriteriaForCriteria(oldId),
+          i
         );
-        index++;
+        subB.forEach((sb, j) => {
+          const value = this.getValueSub(oldId, sa.id, sb.id);
+          const selectedScale = this.scaleValues[value];
+          oldValue.push(selectedScale?.value || 1);
+        });
       });
-    });
+
+      let index = 0;
+      const subAC = this.getSubcriteriaForCriteria(currentId);
+      subAC.forEach((sa, i) => {
+        const subBC = this.getSlicedSubcriteria(
+          this.getSubcriteriaForCriteria(currentId),
+          i
+        );
+        subBC.forEach((sb, j) => {
+          this.handleSubcriteriaComparisonChange(
+            currentId,
+            sa.id,
+            sb.id,
+            oldValue[index]
+          );
+          index++;
+        });
+      });
+    } else {
+      const subAC = this.getSubcriteriaForCriteria(currentId);
+      subAC.forEach((sa, i) => {
+        const subBC = this.getSlicedSubcriteria(
+          this.getSubcriteriaForCriteria(currentId),
+          i
+        );
+        subBC.forEach((sb, j) => {
+          this.handleSubcriteriaComparisonChange(currentId, sa.id, sb.id, 1);
+        });
+      });
+    }
   }
 
   toggleMatrices(): void {

@@ -1,12 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Evaluation, EvaluationResponse } from '../../shared/models/app.types';
+import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
-  evaluationCriteria,
-  mockEmployees,
-  scaleLabels,
-} from '../../shared/data/mock-data';
+  Evaluation,
+  EvaluationFormData,
+  EvaluationResponse,
+  EvaluationStats,
+} from '../../shared/models/app.types';
+import { EvaluationService } from '../../shared/services/evaluation.service';
+import { EmployeeService } from '../../shared/services/employee.service';
 import {
   Award,
   CircleCheck,
@@ -14,6 +16,7 @@ import {
   Clock4,
   ClockArrowUp,
   Eye,
+  Info,
   LucideAngularModule,
   Search,
   SquarePen,
@@ -24,34 +27,26 @@ import {
   User,
   UserCheck,
   Users,
+  X,
 } from 'lucide-angular';
-
-// Interfaces
-interface EvaluationFormData {
-  evaluatorId: string;
-  employeeId: string;
-  type: 'supervisor' | 'peer' | 'subordinate' | 'self';
-  period: string;
-  responses: { [questionId: string]: { score: number; comment: string } };
-  generalComment: string;
-}
-
-interface EvaluationStats {
-  total: number;
-  completed: number;
-  pending: number;
-  inProgress: number;
-  completionRate: number;
-}
+import { toSignal } from '@angular/core/rxjs-interop';
+import { CriteriaService } from '../../shared/services/criteria.service';
+import { startWith } from 'rxjs';
+import { Timestamp } from '@angular/fire/firestore';
 
 @Component({
   selector: 'app-evaluations',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LucideAngularModule,
+    ReactiveFormsModule,
+  ],
   templateUrl: './evaluations.component.html',
   styleUrls: ['./evaluations.component.css'],
 })
-export class EvaluationsComponent implements OnInit {
+export class EvaluationsComponent {
   readonly CircleMinus = CircleMinus;
   readonly CircleCheck = CircleCheck;
   readonly Clock4 = Clock4;
@@ -63,30 +58,276 @@ export class EvaluationsComponent implements OnInit {
   readonly Award = Award;
   readonly Target = Target;
   readonly Search = Search;
-  // State properties
-  evaluations: Evaluation[] = [];
-  selectedEmployee = '';
-  selectedType = '';
-  selectedPeriod = '2024-Q1';
-  showEvaluationForm = false;
-  showEvaluationDetail = false;
+  readonly Info = Info;
+  readonly X = X;
+
+  // Injected services
+  private fb = inject(FormBuilder);
+  private evaluationService = inject(EvaluationService);
+  private employeeService = inject(EmployeeService);
+  private criteriaService = inject(CriteriaService);
+
+  // Signal-based state properties
+  selectedEmployee = signal('');
+  selectedType = signal('');
+  selectedPeriod = signal('2024-Q1');
+  showEvaluationForm = signal(false);
+  showEvaluationDetail = signal(false);
+  showScaleModal = signal(false);
   currentEvaluation: EvaluationFormData | null = null;
-  selectedEvaluationDetail: Evaluation | null = null;
-  viewMode: 'matrix' | 'list' | 'stats' = 'matrix';
-  filters = {
-    search: '',
-    status: '',
-    type: '',
-    evaluator: '',
+  selectedEvaluationDetail = signal<Evaluation | null>(null);
+  viewMode = signal<'matrix' | 'list' | 'stats'>('matrix');
+  loading = signal(true);
+  error = signal<string | null>(null);
+
+  filterForm = this.fb.group({
+    search: [''],
+    status: [''],
+    type: [''],
+    evaluator: [''],
+  });
+
+  filterMatrixForm = this.fb.group({
+    search: [''],
+    position: [''],
+    level: [''],
+  });
+
+  evaluationForm = this.fb.group({
+    responses: this.fb.array([]),
+    generalComment: [''],
+  });
+
+  public employees = toSignal(this.employeeService.getEmployees(), {
+    initialValue: [],
+  });
+  public evaluations = toSignal(
+    this.evaluationService.getEvaluationsByPeriod(this.selectedPeriod()),
+    { initialValue: [] }
+  );
+  public allEvaluationCriteria = toSignal(this.criteriaService.getCriteria(), {
+    initialValue: [],
+  });
+
+  filtersSignal = toSignal(
+    this.filterForm.valueChanges.pipe(startWith(this.filterForm.value))
+  );
+  filtersMatrixSignal = toSignal(
+    this.filterMatrixForm.valueChanges.pipe(
+      startWith(this.filterMatrixForm.value)
+    )
+  );
+
+  // Computed properties
+  filteredEvaluations = computed(() => {
+    const evaluationList = this.evaluations();
+    const currentFilters = this.filtersSignal();
+    const employeeList = this.employees();
+
+    return evaluationList.filter((evaluation) => {
+      const employee = employeeList.find((e) => e.id === evaluation.employeeId);
+      const evaluator = employeeList.find(
+        (e) => e.id === evaluation.evaluatorId
+      );
+
+      if (!currentFilters) return true;
+      if (currentFilters.search) {
+        const searchLower = currentFilters.search.toLowerCase();
+        const matchesEmployee = employee?.name
+          .toLowerCase()
+          .includes(searchLower);
+        const matchesEvaluator = evaluator?.name
+          .toLowerCase()
+          .includes(searchLower);
+        if (!matchesEmployee && !matchesEvaluator) return false;
+      }
+
+      if (currentFilters.status && evaluation.status !== currentFilters.status)
+        return false;
+      if (currentFilters.type && evaluation.type !== currentFilters.type)
+        return false;
+      if (
+        currentFilters.evaluator &&
+        evaluation.evaluatorId !== currentFilters.evaluator
+      )
+        return false;
+
+      return true;
+    });
+  });
+  filteredEmployees = computed(() => {
+    const employees = this.employees();
+    const f = this.filtersMatrixSignal();
+    if (!f) return employees;
+    const searchTerm = f.search?.toLowerCase() || '';
+    return employees.filter((e) => {
+      const matchesSearch = searchTerm
+        ? e.name.toLowerCase().includes(searchTerm) ||
+          e.email.toLowerCase().includes(searchTerm)
+        : true;
+      const matchesPosition = f.position ? e.position === f.position : true;
+      const matchesLevel = f.level ? e.level === f.level : true;
+      return matchesSearch && matchesPosition && matchesLevel;
+    });
+  });
+  stats = computed((): EvaluationStats => {
+    const all = this.evaluations();
+    const evaluationList = all.filter(
+      (val) => val.employeeId === '0gpoWVJXNEkvUAe6eQed'
+    );
+    const total = evaluationList.length;
+    const completed = evaluationList.filter(
+      (e) => e.status === 'completed'
+    ).length;
+    const pending = evaluationList.filter((e) => e.status === 'pending').length;
+    const completionRate = total > 0 ? (completed / total) * 100 : 0;
+
+    const defaultStats: EvaluationStats = {
+      total,
+      completed,
+      pending,
+      completionRate,
+      totalOfAverages: 0,
+    };
+
+    const allResponses = evaluationList.flatMap((e) => e.responses);
+    if (allResponses.length === 0) return defaultStats;
+    const criteriaAggregates = new Map<
+      string,
+      { totalScore: number; count: number }
+    >();
+    allResponses.forEach((response) => {
+      const { criteriaId, score } = response;
+      const current = criteriaAggregates.get(criteriaId) || {
+        totalScore: 0,
+        count: 0,
+      };
+      current.totalScore += score;
+      current.count++;
+      criteriaAggregates.set(criteriaId, current);
+    });
+
+    // --- Calculate final averages ---
+    const averageScorePerCriteria: { [criteriaId: string]: number } = {};
+    let totalOfAverages = 0;
+    for (const [criteriaId, aggregate] of criteriaAggregates.entries()) {
+      const avg =
+        aggregate.count > 0 ? aggregate.totalScore / aggregate.count : 0;
+      averageScorePerCriteria[criteriaId] = avg;
+      totalOfAverages += avg;
+    }
+
+    const totalScore = allResponses.reduce((sum, r) => sum + r.score, 0);
+    const averageScore = totalScore / allResponses.length;
+
+    return {
+      total,
+      completed,
+      pending,
+      completionRate,
+      totalOfAverages: averageScore,
+    };
+  });
+  positions = computed(() => [
+    'Frontend Developer',
+    'Backend Developer',
+    'DevOps Engineer',
+  ]);
+  levels = computed(() => ['senior', 'junior']);
+  evaluatableEmployees = computed(() => {
+    const all = this.employees();
+    const user = all.find((val) => val.id === '0gpoWVJXNEkvUAe6eQed');
+    const type = this.selectedType();
+
+    if (!user || !type) return [];
+
+    switch (type) {
+      case 'supervisor':
+        return user.supervisor
+          ? all.filter((e) => e.id === user.supervisor)
+          : [];
+      case 'peer':
+        return all.filter((e) => user.teammates.includes(e.id));
+      case 'subordinate':
+        return all.filter((e) => user.subordinates.includes(e.id));
+      case 'self':
+        return [user];
+      default:
+        return [];
+    }
+  });
+  getAnsweredQuestionsCount = computed(() => {
+    if (!this.currentEvaluation) return 0;
+    return Object.values(this.currentEvaluation.responses).filter(
+      (r) => r.score > 0
+    ).length;
+  });
+  getTotalQuestionsCount = computed(() => {
+    return this.allEvaluationCriteria().reduce(
+      (sum, criteria) => sum + criteria.questions.length,
+      0
+    );
+  });
+  getRatingConfig = computed(() => {
+    const average = this.stats().totalOfAverages || 0;
+
+    const ratings = [
+      {
+        label: 'Sangat Baik',
+        class: 'bg-green-100 text-green-800',
+        minValue: 4.2,
+      },
+      {
+        label: 'Baik',
+        class: 'bg-blue-100 text-blue-800',
+        minValue: 3.4,
+        maxValue: 4.2,
+      },
+      {
+        label: 'Cukup',
+        class: 'bg-yellow-100 text-yellow-800',
+        minValue: 2.6,
+        maxValue: 3.4,
+      },
+      {
+        label: 'Buruk',
+        class: 'bg-orange-100 text-orange-800',
+        minValue: 1.8,
+        maxValue: 2.6,
+      },
+      {
+        label: 'Sangat Buruk',
+        class: 'bg-red-100 text-red-800',
+        minValue: 1.0,
+        maxValue: 1.8,
+      },
+      {
+        label: '-',
+        class: 'bg-gray-100 text-gray-800',
+        minValue: 0,
+        maxValue: 1.0,
+      },
+    ];
+
+    return (
+      ratings.find(
+        (rating) =>
+          average >= rating.minValue &&
+          (rating.maxValue === undefined || average < rating.maxValue)
+      ) || ratings[ratings.length - 1]
+    );
+  });
+
+  // Static data
+  readonly allScaleLabels: { [key: number]: string } = {
+    1: 'SK - Sangat Kurang',
+    2: 'K - Kurang',
+    3: 'C - Cukup',
+    4: 'B - Baik',
+    5: 'SB - Sangat Baik',
   };
-
-  // Data from mock source
-  allEmployees = mockEmployees;
-  allEvaluationCriteria = evaluationCriteria;
-  allScaleLabels = scaleLabels;
-  periods = ['2024-Q1', '2023-Q4', '2023-Q3', '2023-Q2'];
-
-  evaluationTypes = [
+  readonly periods = ['2024-Q1', '2023-Q4', '2023-Q3', '2023-Q2'];
+  readonly evaluationTypes = [
     { value: 'supervisor', label: 'Atasan', icon: User, color: 'blue' },
     { value: 'peer', label: 'Sejawat', icon: Users, color: 'green' },
     {
@@ -98,264 +339,243 @@ export class EvaluationsComponent implements OnInit {
     { value: 'self', label: 'Diri Sendiri', icon: Star, color: 'yellow' },
   ];
 
-  stats: EvaluationStats = {
-    total: 0,
-    completed: 0,
-    pending: 0,
-    inProgress: 0,
-    completionRate: 0,
-  };
-  filteredEvaluations: Evaluation[] = [];
+  async generateEvalFuationsForPeriod(): Promise<void> {
+    const employees = this.employees();
+    const period = this.selectedPeriod();
 
-  constructor() {}
+    if (employees.length === 0) {
+      return;
+    }
 
-  ngOnInit(): void {
-    this.loadEvaluations();
-  }
-
-  loadEvaluations(): void {
-    // This function simulates fetching data based on the selected period
-    const mockEvaluations: Evaluation[] = [];
-    let evalId = 1;
-
-    mockEmployees.forEach((employee) => {
-      // Self evaluation
-      mockEvaluations.push({
-        id: `eval-${evalId++}`,
-        evaluatorId: employee.id,
-        employeeId: employee.id,
-        type: 'self',
-        period: this.selectedPeriod,
-        status: Math.random() > 0.3 ? 'completed' : 'pending',
-        responses: this.generateMockResponses(),
-        submittedAt: Math.random() > 0.3 ? new Date() : undefined,
-      });
-
-      // Supervisor evaluation
-      if (employee.supervisor) {
-        mockEvaluations.push({
-          id: `eval-${evalId++}`,
-          evaluatorId: employee.supervisor,
-          employeeId: employee.id,
-          type: 'supervisor',
-          period: this.selectedPeriod,
-          status: Math.random() > 0.2 ? 'completed' : 'pending',
-          responses: this.generateMockResponses(),
-          submittedAt: Math.random() > 0.2 ? new Date() : undefined,
-        });
-      }
-
-      // Peer evaluations
-      (employee.teammates || []).slice(0, 2).forEach((teammateId) => {
-        mockEvaluations.push({
-          id: `eval-${evalId++}`,
-          evaluatorId: teammateId,
-          employeeId: employee.id,
-          type: 'peer',
-          period: this.selectedPeriod,
-          status: Math.random() > 0.4 ? 'completed' : 'pending',
-          responses: this.generateMockResponses(),
-          submittedAt: Math.random() > 0.4 ? new Date() : undefined,
-        });
-      });
-
-      // Subordinate evaluations
-      (employee.subordinates || []).slice(0, 2).forEach((subordinateId) => {
-        mockEvaluations.push({
-          id: `eval-${evalId++}`,
-          evaluatorId: subordinateId,
-          employeeId: employee.id,
-          type: 'subordinate',
-          period: this.selectedPeriod,
-          status: Math.random() > 0.5 ? 'completed' : 'pending',
-          responses: this.generateMockResponses(),
-          submittedAt: Math.random() > 0.5 ? new Date() : undefined,
-        });
-      });
-    });
-
-    this.evaluations = mockEvaluations;
-    this.applyFilters();
-    this.calculateStats();
-  }
-
-  generateMockResponses(): EvaluationResponse[] {
-    const responses: EvaluationResponse[] = [];
-    evaluationCriteria.forEach((criteria) => {
-      criteria.questions.forEach((question) => {
-        const score = Math.floor(Math.random() * 3) + 3; // 3-5 range
-        responses.push({
-          questionId: question.id,
-          score: score,
-          comment:
-            Math.random() > 0.7 ? `Komentar untuk ${question.code}` : undefined,
-        });
-      });
-    });
-    return responses;
-  }
-
-  onPeriodChange(): void {
-    this.loadEvaluations();
-  }
-
-  applyFilters(): void {
-    this.filteredEvaluations = this.evaluations.filter((evaluation) => {
-      const employee = this.allEmployees.find(
-        (e) => e.id === evaluation.employeeId
+    try {
+      this.loading.set(true);
+      await this.evaluationService.generatePendingEvaluations(
+        period,
+        employees
       );
-      const evaluator = this.allEmployees.find(
-        (e) => e.id === evaluation.evaluatorId
-      );
+    } catch (error) {
+      console.error('Error generating evaluations:', error);
+      this.error.set('Failed to generate evaluations');
+    } finally {
+      this.loading.set(false);
+    }
+  }
 
-      if (this.filters.search) {
-        const searchLower = this.filters.search.toLowerCase();
-        const matchesEmployee = employee?.name
-          .toLowerCase()
-          .includes(searchLower);
-        const matchesEvaluator = evaluator?.name
-          .toLowerCase()
-          .includes(searchLower);
-        if (!matchesEmployee && !matchesEvaluator) return false;
-      }
-
-      if (this.filters.status && evaluation.status !== this.filters.status)
-        return false;
-      if (this.filters.type && evaluation.type !== this.filters.type)
-        return false;
-      if (
-        this.filters.evaluator &&
-        evaluation.evaluatorId !== this.filters.evaluator
-      )
-        return false;
-
-      return true;
-    });
+  onSelectedTypeChange(value: string): void {
+    this.selectedEmployee.set('');
+    if (value === 'self') {
+      this.selectedEmployee.set('0gpoWVJXNEkvUAe6eQed');
+    }
   }
 
   clearFilters(): void {
-    this.filters = { search: '', status: '', type: '', evaluator: '' };
-    this.applyFilters();
+    this.filterForm.reset({
+      search: '',
+      status: '',
+      type: '',
+      evaluator: '',
+    });
   }
-
-  calculateStats(): void {
-    const total = this.evaluations.length;
-    const completed = this.evaluations.filter(
-      (e) => e.status === 'completed'
-    ).length;
-    const pending = this.evaluations.filter(
-      (e) => e.status === 'pending'
-    ).length;
-    const inProgress = this.evaluations.filter(
-      (e) => e.status === 'in-progress'
-    ).length;
-    const completionRate = total > 0 ? (completed / total) * 100 : 0;
-    this.stats = { total, completed, pending, inProgress, completionRate };
+  clearMatrixFilters(): void {
+    this.filterMatrixForm.reset({
+      search: '',
+      position: '',
+      level: '',
+    });
   }
 
   startEvaluation(employeeId: string, evaluationType: string): void {
-    const currentUser = this.allEmployees[0]; // Assume current user
+    const employees = this.employees();
+    const currentUser = employees.find(
+      (val) => val.id === '0gpoWVJXNEkvUAe6eQed'
+    );
+
+    if (!currentUser) {
+      return;
+    }
 
     const formData: EvaluationFormData = {
       evaluatorId: currentUser.id,
       employeeId,
       type: evaluationType as any,
-      period: this.selectedPeriod,
+      period: this.selectedPeriod(),
       responses: {},
       generalComment: '',
     };
 
-    this.allEvaluationCriteria.forEach((criteria) => {
+    this.allEvaluationCriteria().forEach((criteria) => {
       criteria.questions.forEach((question) => {
-        formData.responses[question.id] = { score: 0, comment: '' };
+        formData.responses[question.id] = {
+          criteriaId: criteria.id,
+          score: 0,
+          comment: '',
+        };
       });
     });
 
     this.currentEvaluation = formData;
-    this.showEvaluationForm = true;
+    this.showEvaluationForm.set(true);
   }
 
   handleResponseChange(
     questionId: string,
+    criteriaId: string,
     score: number,
     comment: string = ''
   ): void {
-    if (!this.currentEvaluation) return;
-    this.currentEvaluation.responses[questionId] = { score, comment };
-  }
+    const evaluation = this.currentEvaluation;
+    if (!evaluation) return;
 
-  submitEvaluation(): void {
-    if (!this.currentEvaluation) return;
-
-    const unanswered = Object.values(this.currentEvaluation.responses).some(
-      (r) => r.score === 0
-    );
-    if (unanswered) {
-      alert('Mohon jawab semua pertanyaan.');
-      return;
-    }
-
-    const newEvaluation: Evaluation = {
-      id: `eval-${Date.now()}`,
-      evaluatorId: this.currentEvaluation.evaluatorId,
-      employeeId: this.currentEvaluation.employeeId,
-      type: this.currentEvaluation.type,
-      period: this.currentEvaluation.period,
-      status: 'completed',
-      responses: Object.entries(this.currentEvaluation.responses).map(
-        ([questionId, data]) => ({
-          questionId,
-          score: data.score,
-          comment: data.comment || undefined,
-        })
-      ),
-      comments: this.currentEvaluation.generalComment || undefined,
-      submittedAt: new Date(),
+    const updatedEvaluation = {
+      ...evaluation,
+      responses: {
+        ...evaluation.responses,
+        [questionId]: {
+          criteriaId,
+          score,
+          comment,
+        },
+      },
     };
 
-    this.evaluations.push(newEvaluation);
-    this.applyFilters();
-    this.calculateStats();
-    this.showEvaluationForm = false;
-    this.currentEvaluation = null;
+    this.currentEvaluation = updatedEvaluation;
   }
 
-  saveDraft(): void {
-    if (!this.currentEvaluation) return;
-    // Similar logic to submit, but with 'in-progress' status
-    console.log('Saving draft...');
-    this.showEvaluationForm = false;
-    this.currentEvaluation = null;
+  async submitEvaluation(): Promise<void> {
+    const evaluation = this.currentEvaluation;
+    if (!evaluation) return;
+
+    try {
+      const responses: EvaluationResponse[] = Object.entries(
+        evaluation.responses
+      ).map(([questionId, data]) => ({
+        questionId,
+        criteriaId: data.criteriaId,
+        score: data.score,
+        comment: data.comment || '',
+      }));
+
+      const existingEval = this.evaluations().find(
+        (e) =>
+          e.employeeId === evaluation.employeeId &&
+          e.evaluatorId === evaluation.evaluatorId &&
+          e.type === evaluation.type &&
+          e.period === evaluation.period
+      );
+
+      if (existingEval) {
+        const updateData: Partial<Evaluation> = {
+          status: 'completed',
+          responses,
+          comments: evaluation.generalComment || '',
+          submittedAt: Timestamp.fromDate(new Date()),
+        };
+        await this.evaluationService.updateEvaluation(
+          existingEval.id,
+          updateData
+        );
+      } else {
+        const newEvaluation: Omit<Evaluation, 'id'> = {
+          evaluatorId: evaluation.evaluatorId,
+          employeeId: evaluation.employeeId,
+          type: evaluation.type,
+          period: evaluation.period,
+          status: 'completed',
+          responses,
+          comments: evaluation.generalComment || '',
+          submittedAt: Timestamp.fromDate(new Date()),
+        };
+        await this.evaluationService.addEvaluation(newEvaluation);
+      }
+
+      this.showEvaluationForm.set(false);
+      this.currentEvaluation = null;
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async saveDraft(): Promise<void> {
+    const evaluation = this.currentEvaluation;
+    if (!evaluation) return;
+
+    try {
+      const responses: EvaluationResponse[] = Object.entries(
+        evaluation.responses
+      )
+        .filter(([_, data]) => data.score > 0)
+        .map(([questionId, data]) => ({
+          questionId,
+          criteriaId: data.criteriaId,
+          score: data.score,
+          comment: data.comment || '',
+        }));
+
+      const existingEval = this.evaluations().find(
+        (e) =>
+          e.employeeId === evaluation.employeeId &&
+          e.evaluatorId === evaluation.evaluatorId &&
+          e.type === evaluation.type &&
+          e.period === evaluation.period
+      );
+
+      if (existingEval) {
+        const updateData: Partial<Evaluation> = {
+          status: 'pending',
+          responses,
+          comments: evaluation.generalComment || '',
+        };
+        await this.evaluationService.updateEvaluation(
+          existingEval.id,
+          updateData
+        );
+      } else {
+        const newEvaluation: Omit<Evaluation, 'id'> = {
+          evaluatorId: evaluation.evaluatorId,
+          employeeId: evaluation.employeeId,
+          type: evaluation.type,
+          period: evaluation.period,
+          status: 'pending',
+          responses,
+          comments: evaluation.generalComment || '',
+        };
+        await this.evaluationService.addEvaluation(newEvaluation);
+      }
+
+      this.showEvaluationForm.set(false);
+      this.currentEvaluation = null;
+    } catch (error) {
+      console.error('Error saving draft:', error);
+    }
   }
 
   viewEvaluationDetail(employeeId: string): void {
     const evaluation =
-      this.evaluations.find((e) => e.employeeId === employeeId) || null;
-    this.selectedEvaluationDetail = evaluation;
-    this.showEvaluationDetail = true;
+      this.evaluations().find((e) => e.employeeId === employeeId) || null;
+    this.selectedEvaluationDetail.set(evaluation);
+    this.showEvaluationDetail.set(true);
   }
 
-  deleteEvaluation(evaluationId: string): void {
+  async deleteEvaluation(evaluationId: string): Promise<void> {
     if (confirm('Apakah Anda yakin ingin menghapus evaluasi ini?')) {
-      this.evaluations = this.evaluations.filter((e) => e.id !== evaluationId);
-      this.applyFilters();
-      this.calculateStats();
+      try {
+        await this.evaluationService.deleteEvaluation(evaluationId);
+      } catch (error) {
+        console.error('Error deleting evaluation:', error);
+      }
     }
   }
 
-  // --- Template Helper Methods ---
   getEmployeeName(id: string): string {
-    return this.allEmployees.find((e) => e.id === id)?.name || 'Unknown';
+    return this.employees().find((e) => e.id === id)?.name || 'Unknown';
   }
 
   getStatusClass(status: string): string {
     switch (status) {
       case 'completed':
         return 'bg-green-100 text-green-800';
-      case 'in-progress':
-        return 'bg-yellow-100 text-yellow-800';
       case 'pending':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -365,8 +585,6 @@ export class EvaluationsComponent implements OnInit {
     switch (status) {
       case 'completed':
         return 'Selesai';
-      case 'in-progress':
-        return 'Sedang Berlangsung';
       case 'pending':
         return 'Menunggu';
       default:
@@ -378,43 +596,135 @@ export class EvaluationsComponent implements OnInit {
     return this.evaluationTypes.find((t) => t.value === type);
   }
 
-  getEvaluationProgress(employeeId: string) {
-    const employeeEvals = this.evaluations.filter(
-      (e) => e.employeeId === employeeId
+  getEvaluationProgress(employeeId: string): number {
+    const evaluationList = this.evaluations();
+
+    const employee = this.employees().find((e) => e.id === employeeId);
+    if (!employee) {
+      return 0;
+    }
+
+    const totalRequired =
+      1 +
+      (employee.teammates?.length || 0) +
+      (employee.subordinates?.length || 0);
+
+    let completedCount = 0;
+
+    if (
+      evaluationList.some(
+        (e) =>
+          e.employeeId === employeeId &&
+          e.type === 'self' &&
+          e.status === 'completed'
+      )
+    ) {
+      completedCount++;
+    }
+
+    const completedPeerEvaluatorIds = new Set(
+      evaluationList
+        .filter(
+          (e) =>
+            e.employeeId === employeeId &&
+            e.type === 'peer' &&
+            e.status === 'completed'
+        )
+        .map((e) => e.evaluatorId)
     );
-    const completedCount = new Set(
-      employeeEvals.filter((e) => e.status === 'completed').map((e) => e.type)
-    ).size;
-    const totalTypes = new Set(employeeEvals.map((e) => e.type)).size;
-    return totalTypes > 0 ? (completedCount / totalTypes) * 100 : 0;
+
+    (employee.teammates || []).forEach((teammateId) => {
+      if (completedPeerEvaluatorIds.has(teammateId)) {
+        completedCount++;
+      }
+    });
+
+    const completedSubordinateEvaluatorIds = new Set(
+      evaluationList
+        .filter(
+          (e) =>
+            e.employeeId === employeeId &&
+            e.type === 'subordinate' &&
+            e.status === 'completed'
+        )
+        .map((e) => e.evaluatorId)
+    );
+
+    (employee.subordinates || []).forEach((subordinateId) => {
+      if (completedSubordinateEvaluatorIds.has(subordinateId)) {
+        completedCount++;
+      }
+    });
+
+    return totalRequired > 0 ? (completedCount / totalRequired) * 100 : 100;
   }
 
   getEvaluationStatusForType(employeeId: string, type: string): string {
-    const evals = this.evaluations.filter(
-      (e) => e.employeeId === employeeId && e.type === type
-    );
-    if (evals.some((e) => e.status === 'completed')) return 'completed';
-    if (evals.some((e) => e.status === 'in-progress')) return 'in-progress';
-    if (evals.length > 0) return 'pending';
-    return 'none';
+    if (employeeId === '0gpoWVJXNEkvUAe6eQed') {
+      const employee = this.employees().find((e) => e.id === employeeId);
+      if (!employee) return 'none';
+
+      let totalRequired = 0;
+      switch (type) {
+        case 'self':
+          totalRequired = 1;
+          break;
+        case 'supervisor':
+          totalRequired = employee.supervisor ? 1 : 0;
+          break;
+        case 'peer':
+          totalRequired = employee.teammates?.length || 0;
+          break;
+        case 'subordinate':
+          totalRequired = employee.subordinates?.length || 0;
+          break;
+      }
+
+      if (totalRequired === 0) return 'none';
+
+      const relevantEvals = this.evaluations().filter((e) => {
+        if (type === 'supervisor') {
+          return e.employeeId === employeeId && e.type === 'subordinate';
+        } else if (type === 'subordinate') {
+          return e.employeeId === employeeId && e.type === 'supervisor';
+        } else {
+          return e.employeeId === employeeId && e.type === type;
+        }
+      });
+
+      const completedCount = relevantEvals.filter(
+        (e) => e.status === 'completed'
+      ).length;
+
+      if (completedCount === totalRequired) return 'completed';
+      const hasStarted = relevantEvals.some(
+        (e) => e.status === 'pending' || e.status === 'completed'
+      );
+      if (hasStarted) return 'pending';
+
+      return 'none';
+    } else {
+      return 'none';
+    }
   }
 
   getEvaluationForDetail(questionId: string): EvaluationResponse | undefined {
-    return this.selectedEvaluationDetail?.responses.find(
-      (r) => r.questionId === questionId
-    );
+    const detail = this.selectedEvaluationDetail();
+    return detail?.responses.find((r) => r.questionId === questionId);
   }
 
   getAverageScoreForCriteria(criteriaId: string): number {
-    if (!this.selectedEvaluationDetail) return 0;
-    const criteria = this.allEvaluationCriteria.find(
+    const detail = this.selectedEvaluationDetail();
+    if (!detail) return 0;
+
+    const criteria = this.allEvaluationCriteria().find(
       (c) => c.id === criteriaId
     );
     if (!criteria) return 0;
 
     const questionIds = new Set(criteria.questions.map((q) => q.id));
-    const relevantResponses = this.selectedEvaluationDetail.responses.filter(
-      (r) => questionIds.has(r.questionId)
+    const relevantResponses = detail.responses.filter((r) =>
+      questionIds.has(r.questionId)
     );
 
     if (relevantResponses.length === 0) return 0;
@@ -422,34 +732,135 @@ export class EvaluationsComponent implements OnInit {
     return totalScore / relevantResponses.length;
   }
 
-  getAnsweredQuestionsCount(): number {
-    if (!this.currentEvaluation) return 0;
-    return Object.values(this.currentEvaluation.responses).filter(
-      (r) => r.score > 0
-    ).length;
-  }
-
-  getTotalQuestionsCount(): number {
-    return this.allEvaluationCriteria.reduce(
-      (sum, criteria) => sum + criteria.questions.length,
-      0
-    );
-  }
-
   getCompletedCount(type: string): number {
-    return this.evaluations.filter(
-      (e) => e.type === type && e.status === 'completed'
+    const employeeId = '';
+    const employee = this.employees().find((e) => e.id === employeeId);
+    let totalRequired = 0;
+    if (!employee) {
+      switch (type) {
+        case 'self':
+          totalRequired = this.employees().length;
+          break;
+        case 'supervisor':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.supervisor ? 1 : 0),
+            0
+          );
+          break;
+        case 'peer':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.teammates?.length || 0),
+            0
+          );
+          break;
+        case 'subordinate':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.subordinates?.length || 0),
+            0
+          );
+          break;
+      }
+    } else {
+      switch (type) {
+        case 'self':
+          totalRequired = 1;
+          break;
+        case 'supervisor':
+          totalRequired = employee?.supervisor ? 1 : 0;
+          break;
+        case 'peer':
+          totalRequired = employee?.teammates?.length || 0;
+          break;
+        case 'subordinate':
+          totalRequired = employee?.subordinates?.length || 0;
+          break;
+      }
+    }
+
+    if (totalRequired === 0) return 0;
+
+    let relevantEvals = this.evaluations().filter((e) => {
+      if (type === 'supervisor') {
+        return e.type === 'subordinate';
+      } else if (type === 'subordinate') {
+        return e.type === 'supervisor';
+      } else {
+        return e.type === type;
+      }
+    });
+
+    if (employeeId) {
+      relevantEvals = relevantEvals.filter((e) => {
+        e.employeeId === employeeId;
+      });
+    }
+
+    const completedCount = relevantEvals.filter(
+      (e) => e.status === 'completed'
     ).length;
+
+    return completedCount;
   }
 
   getTotalCount(type: string): number {
-    return this.evaluations.filter((e) => e.type === type).length;
+    const employeeId = '';
+    const employee = this.employees().find((e) => e.id === employeeId);
+    let totalRequired = 0;
+    if (!employee) {
+      switch (type) {
+        case 'self':
+          totalRequired = this.employees().length;
+          break;
+        case 'supervisor':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.supervisor ? 1 : 0),
+            0
+          );
+          break;
+        case 'peer':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.teammates?.length || 0),
+            0
+          );
+          break;
+        case 'subordinate':
+          totalRequired = this.employees().reduce(
+            (sum, val) => sum + (val?.subordinates?.length || 0),
+            0
+          );
+          break;
+      }
+    } else {
+      switch (type) {
+        case 'self':
+          totalRequired = 1;
+          break;
+        case 'supervisor':
+          totalRequired = employee?.supervisor ? 1 : 0;
+          break;
+        case 'peer':
+          totalRequired = employee?.teammates?.length || 0;
+          break;
+        case 'subordinate':
+          totalRequired = employee?.subordinates?.length || 0;
+          break;
+      }
+    }
+
+    return totalRequired;
   }
 
-  getCompletedSelfEvaluationsCount(): number {
-    return this.evaluations.filter(
-      (e) => e.type === 'self' && e.status === 'completed'
-    ).length;
+  getAveragePerCriteria(criteriaId: string) {
+    if (!this.currentEvaluation) return 0;
+    const criteria = this.allEvaluationCriteria().find(
+      (val) => val.id === criteriaId
+    );
+    return (
+      Object.values(this.currentEvaluation.responses)
+        .filter((r) => r.criteriaId === criteriaId)
+        .reduce((sum, val) => sum + val.score, 0) /
+      (criteria?.questions.length || 1)
+    );
   }
 
   initials(name: string): string {

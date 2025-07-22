@@ -1,13 +1,14 @@
 <!-- Main container with conditional views -->
 <div class="space-y-6">
   <!-- Evaluation Form View -->
-  <ng-container *ngIf="showEvaluationForm && currentEvaluation">
+  <ng-container *ngIf="showEvaluationForm() && currentEvaluation">
     <div class="space-y-6">
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-2xl font-bold text-gray-900">
-            Evaluasi 360° - {{ getEmployeeName(currentEvaluation.employeeId) }}
+            Evaluasi 360° -
+            {{ getEmployeeName(currentEvaluation.employeeId) }}
           </h2>
           <p class="text-sm text-gray-500 flex items-center mt-1">
             <!-- Icon placeholder -->
@@ -17,7 +18,7 @@
           </p>
         </div>
         <button
-          (click)="showEvaluationForm = false"
+          (click)="showEvaluationForm.set(false)"
           class="text-gray-400 hover:text-gray-600 cursor-pointer"
         >
           <!-- Icon: X -->
@@ -53,11 +54,19 @@
           <h3 class="text-lg font-medium text-gray-900">Formulir Evaluasi</h3>
         </div>
         <div class="p-6 space-y-8">
-          <div *ngFor="let criteria of allEvaluationCriteria" class="space-y-4">
-            <div class="border-l-4 border-blue-500 pl-4">
+          <div
+            *ngFor="let criteria of allEvaluationCriteria()"
+            class="space-y-4"
+          >
+            <div class="border-l-4 border-blue-500 pl-4 flex justify-between">
               <h4 class="text-lg font-semibold text-gray-900">
                 {{ criteria.code }}. {{ criteria.name }}
               </h4>
+              <div class="bg-blue-100 rounded-lg px-2 py-2">
+                <div class="text-lg font-bold text-blue-600 r">
+                  {{ getAveragePerCriteria(criteria.id).toFixed(2) }}
+                </div>
+              </div>
             </div>
             <div class="space-y-6">
               <div
@@ -75,8 +84,9 @@
                       (click)="
                         handleResponseChange(
                           question.id,
+                          criteria.id,
                           score,
-                          currentEvaluation.responses[question.id].comment || ''
+                          currentEvaluation.responses[question.id].comment
                         )
                       "
                       [ngClass]="{
@@ -99,15 +109,8 @@
                     >Komentar (Opsional)</label
                   >
                   <textarea
-                    [ngModel]="
-                      currentEvaluation.responses[question.id].comment || ''
-                    "
-                    (ngModelChange)="
-                      handleResponseChange(
-                        question.id,
-                        currentEvaluation.responses[question.id].score || 0,
-                        $event
-                      )
+                    [(ngModel)]="
+                      currentEvaluation.responses[question.id].comment
                     "
                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none text-sm"
                     rows="2"
@@ -136,7 +139,7 @@
             </button>
             <div class="flex space-x-3">
               <button
-                (click)="showEvaluationForm = false"
+                (click)="showEvaluationForm.set(false)"
                 class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Batal
@@ -155,11 +158,11 @@
   </ng-container>
 
   <!-- Evaluation Detail Modal -->
-  <ng-container *ngIf="showEvaluationDetail && selectedEvaluationDetail">
+  <ng-container *ngIf="showEvaluationDetail() && selectedEvaluationDetail()">
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      (click)="showEvaluationDetail = false"
-      (keydown.escape)="showEvaluationDetail = false"
+      (click)="showEvaluationDetail.set(false)"
+      (keydown.escape)="showEvaluationDetail.set(false)"
     >
       <div
         class="relative mx-auto p-5 w-full max-w-4xl shadow-lg rounded-md bg-white mt-10 mb-10"
@@ -170,13 +173,17 @@
           <div>
             <h3 class="text-lg font-medium text-gray-900">Detail Evaluasi</h3>
             <p class="text-sm text-gray-500 mt-1">
-              {{ getEmployeeName(selectedEvaluationDetail.employeeId) }} •
-              {{ getTypeConfig(selectedEvaluationDetail.type)?.label }} •
-              {{ selectedEvaluationDetail.period }}
+              {{
+                getEmployeeName(selectedEvaluationDetail()?.employeeId || "")
+              }}
+              •
+              {{ getTypeConfig(selectedEvaluationDetail()?.type || "")?.label }}
+              •
+              {{ selectedEvaluationDetail()?.period }}
             </p>
           </div>
           <button
-            (click)="showEvaluationDetail = false"
+            (click)="showEvaluationDetail.set(false)"
             class="text-gray-400 hover:text-gray-600 cursor-pointer"
           >
             <!-- Icon: X -->
@@ -187,7 +194,7 @@
           <!-- ... (detail info here) ... -->
           <!-- Responses -->
           <div
-            *ngFor="let criteria of allEvaluationCriteria"
+            *ngFor="let criteria of allEvaluationCriteria()"
             class="border border-gray-200 rounded-lg p-4"
           >
             <div class="flex items-center justify-between mb-4">
@@ -227,20 +234,20 @@
             </div>
           </div>
           <!-- General Comment -->
-          <div *ngIf="selectedEvaluationDetail.comments">
+          <div *ngIf="selectedEvaluationDetail()?.comments">
             <h4 class="text-md font-medium text-gray-900 mb-2">
               Komentar Umum
             </h4>
             <div class="bg-gray-50 p-4 rounded-lg">
               <p class="text-sm text-gray-700">
-                {{ selectedEvaluationDetail.comments }}
+                {{ selectedEvaluationDetail()?.comments }}
               </p>
             </div>
           </div>
         </div>
         <div class="mt-6 flex justify-end">
           <button
-            (click)="showEvaluationDetail = false"
+            (click)="showEvaluationDetail.set(false)"
             class="px-4 py-2 bg-gray-600 text-white rounded-md text-sm font-medium hover:bg-gray-700 cursor-pointer"
           >
             Tutup
@@ -251,7 +258,7 @@
   </ng-container>
 
   <!-- Main Dashboard View -->
-  <ng-container *ngIf="!showEvaluationForm && !showEvaluationDetail">
+  <ng-container *ngIf="!showEvaluationForm() && !showEvaluationDetail()">
     <!-- Header -->
     <div class="md:flex md:items-center md:justify-between">
       <div class="flex-1 min-w-0">
@@ -267,7 +274,6 @@
       <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
         <select
           [(ngModel)]="selectedPeriod"
-          (ngModelChange)="onPeriodChange()"
           class="block px-3 py-2 border border-gray-300 rounded-md text-sm"
         >
           <option *ngFor="let period of periods" [value]="period">
@@ -276,30 +282,30 @@
         </select>
         <div class="flex rounded-md shadow-sm">
           <button
-            (click)="viewMode = 'matrix'"
+            (click)="viewMode.set('matrix')"
             [ngClass]="{
-              'bg-blue-50 text-blue-700': viewMode === 'matrix',
-              'bg-white text-gray-700': viewMode !== 'matrix'
+              'bg-blue-50 text-blue-700': viewMode() === 'matrix',
+              'bg-white text-gray-700': viewMode() !== 'matrix'
             }"
             class="px-4 py-2 text-sm font-medium border border-gray-300 rounded-l-md cursor-pointer"
           >
             Matriks
           </button>
           <button
-            (click)="viewMode = 'list'"
+            (click)="viewMode.set('list')"
             [ngClass]="{
-              'bg-blue-50 text-blue-700': viewMode === 'list',
-              'bg-white text-gray-700': viewMode !== 'list'
+              'bg-blue-50 text-blue-700': viewMode() === 'list',
+              'bg-white text-gray-700': viewMode() !== 'list'
             }"
             class="px-4 py-2 text-sm font-medium border border-gray-300 border-l-0 cursor-pointer"
           >
             Daftar
           </button>
           <button
-            (click)="viewMode = 'stats'"
+            (click)="viewMode.set('stats')"
             [ngClass]="{
-              'bg-blue-50 text-blue-700': viewMode === 'stats',
-              'bg-white text-gray-700': viewMode !== 'stats'
+              'bg-blue-50 text-blue-700': viewMode() === 'stats',
+              'bg-white text-gray-700': viewMode() !== 'stats'
             }"
             class="px-4 py-2 text-sm font-medium border border-gray-300 rounded-r-md border-l-0 cursor-pointer"
           >
@@ -348,16 +354,8 @@
       </h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <select
-          [(ngModel)]="selectedEmployee"
-          class="block w-full px-3 py-2 border border-gray-300 rounded-md"
-        >
-          <option value="">Pilih karyawan</option>
-          <option *ngFor="let emp of allEmployees" [value]="emp.id">
-            {{ emp.name }}
-          </option>
-        </select>
-        <select
           [(ngModel)]="selectedType"
+          (ngModelChange)="onSelectedTypeChange($event)"
           class="block w-full px-3 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Pilih jenis</option>
@@ -365,29 +363,95 @@
             {{ type.label }}
           </option>
         </select>
+        <select
+          [(ngModel)]="selectedEmployee"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+          [disabled]="selectedType() && selectedType() === 'self'"
+        >
+          <option value="">Pilih karyawan</option>
+          <option *ngFor="let emp of evaluatableEmployees()" [value]="emp.id">
+            {{ emp.name }}
+          </option>
+        </select>
+
         <button
-          (click)="startEvaluation(selectedEmployee, selectedType)"
-          [disabled]="!selectedEmployee || !selectedType"
-          class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+          (click)="startEvaluation(selectedEmployee(), selectedType())"
+          [disabled]="!selectedEmployee() || !selectedType()"
+          class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
         >
           Mulai Evaluasi
         </button>
       </div>
     </div>
 
-    <!-- Filters (for List and Stats view) -->
-    <div *ngIf="viewMode === 'list'" class="bg-white shadow rounded-lg p-6">
+    <div
+      *ngIf="viewMode() === 'matrix'"
+      class="bg-white shadow rounded-lg p-6"
+      [formGroup]="filterMatrixForm"
+    >
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input
-          type="text"
-          [(ngModel)]="filters.search"
-          (ngModelChange)="applyFilters()"
-          placeholder="Cari..."
-          class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md"
-        />
+        <div class="relative">
+          <input
+            type="text"
+            formControlName="search"
+            placeholder="Cari..."
+            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md"
+          />
+          <lucide-icon
+            [img]="Search"
+            class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-600 w-4 h-4"
+          />
+        </div>
         <select
-          [(ngModel)]="filters.status"
-          (ngModelChange)="applyFilters()"
+          id="position"
+          formControlName="position"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+        >
+          <option value="">Semua Posisi</option>
+          @for(pos of positions(); track pos) {
+          <option [value]="pos">{{ pos }}</option>
+          }
+        </select>
+        <select
+          id="level"
+          formControlName="level"
+          class="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+        >
+          <option value="">Semua Level</option>
+          @for(lvl of levels(); track lvl) {
+          <option [value]="lvl" class="capitalize">{{ lvl }}</option>
+          }
+        </select>
+        <button
+          (click)="clearMatrixFilters()"
+          class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium cursor-pointer"
+        >
+          Clear Filters
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters (for List and Stats view) -->
+    <div
+      *ngIf="viewMode() === 'list'"
+      class="bg-white shadow rounded-lg p-6"
+      [formGroup]="filterForm"
+    >
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="relative">
+          <input
+            type="text"
+            formControlName="search"
+            placeholder="Cari..."
+            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md"
+          />
+          <lucide-icon
+            [img]="Search"
+            class="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-600 w-4 h-4"
+          />
+        </div>
+        <select
+          formControlName="status"
           class="block w-full px-3 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Semua Status</option>
@@ -396,8 +460,7 @@
           <option value="pending">Menunggu</option>
         </select>
         <select
-          [(ngModel)]="filters.type"
-          (ngModelChange)="applyFilters()"
+          formControlName="type"
           class="block w-full px-3 py-2 border border-gray-300 rounded-md"
         >
           <option value="">Semua Jenis</option>
@@ -416,7 +479,7 @@
 
     <!-- Matrix View -->
     <div
-      *ngIf="viewMode === 'matrix'"
+      *ngIf="viewMode() === 'matrix'"
       class="bg-white shadow rounded-lg overflow-x-auto"
     >
       <table class="min-w-full divide-y divide-gray-200">
@@ -446,7 +509,10 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr *ngFor="let employee of allEmployees" class="hover:bg-gray-50">
+          <tr
+            *ngFor="let employee of filteredEmployees()"
+            class="hover:bg-gray-50"
+          >
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div
@@ -479,13 +545,13 @@
                 </div>
                 <div class="flex justify-center" *ngSwitchCase="'in-progress'">
                   <lucide-angular
-                    [img]="ClockArrowUp"
+                    [img]="Clock4"
                     class="w-6 h-6 text-yellow-400"
                   ></lucide-angular>
                 </div>
                 <div class="flex justify-center" *ngSwitchCase="'pending'">
                   <lucide-angular
-                    [img]="Clock4"
+                    [img]="ClockArrowUp"
                     class="w-6 h-6 text-gray-400"
                   ></lucide-angular>
                 </div>
@@ -520,12 +586,12 @@
 
     <!-- List View -->
     <div
-      *ngIf="viewMode === 'list'"
+      *ngIf="viewMode() === 'list'"
       class="bg-white shadow overflow-hidden sm:rounded-md"
     >
       <ul class="divide-y divide-gray-200">
         <li
-          *ngFor="let evaluation of filteredEvaluations"
+          *ngFor="let evaluation of filteredEvaluations()"
           class="px-6 py-4 hover:bg-gray-50"
         >
           <div class="flex items-center justify-between">
@@ -595,7 +661,7 @@
 
     <!-- Stats View -->
     <div
-      *ngIf="viewMode === 'stats'"
+      *ngIf="viewMode() === 'stats'"
       class="grid grid-cols-1 lg:grid-cols-2 gap-6"
     >
       <div class="bg-white shadow rounded-lg">
@@ -607,25 +673,19 @@
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">Total Evaluasi</span>
               <span class="text-lg font-bold text-gray-900">{{
-                stats.total
+                stats().total
               }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">Selesai</span>
               <span class="text-lg font-bold text-green-600">{{
-                stats.completed
-              }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-sm text-gray-600">Sedang Berlangsung</span>
-              <span class="text-lg font-bold text-yellow-600">{{
-                stats.inProgress
+                stats().completed
               }}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-sm text-gray-600">Menunggu</span>
               <span class="text-lg font-bold text-gray-600">{{
-                stats.pending
+                stats().pending
               }}</span>
             </div>
             <div class="pt-4 border-t border-gray-200">
@@ -634,13 +694,13 @@
                   >Tingkat Penyelesaian</span
                 >
                 <span class="text-xl font-bold text-blue-600"
-                  >{{ stats.completionRate.toFixed(1) }}%</span
+                  >{{ stats().completionRate.toFixed(1) }}%</span
                 >
               </div>
               <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
                 <div
                   class="bg-blue-600 h-2 rounded-full"
-                  [ngStyle]="{ width: `${stats.completionRate}%` }"
+                  [ngStyle]="{ width: `${stats().completionRate}%` }"
                 ></div>
               </div>
             </div>
@@ -653,46 +713,58 @@
             Insight Performa
           </h3>
           <div class="space-y-4">
-            <div class="flex items-center p-3 bg-green-50 rounded-lg">
-              <lucide-angular
-                [img]="TrendingUp"
-                class="w-8 h-8 text-green-600 mr-3"
-              ></lucide-angular>
-              <div>
-                <p class="text-sm font-medium text-gray-900">
-                  Evaluasi Terbanyak
-                </p>
-                <p class="text-xs text-gray-500">
-                  Self evaluation:
-                  {{ getCompletedSelfEvaluationsCount() }}
-                  selesai
-                </p>
+            <!-- Rata-rata Skor - Enhanced Display -->
+            <div
+              class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200"
+            >
+              <div class="flex justify-center items-center mb-3">
+                <lucide-angular
+                  [img]="Award"
+                  class="w-12 h-12 text-blue-600"
+                ></lucide-angular>
               </div>
-            </div>
+              <div class="flex justify-center items-center gap-2 mb-2">
+                <h4 class="text-lg font-semibold text-gray-900">
+                  Rata-rata Skor
+                </h4>
+                <!-- Info Icon for Tooltip -->
+                <button
+                  type="button"
+                  class="relative group"
+                  (click)="showScaleModal.set(true)"
+                >
+                  <lucide-angular
+                    [img]="Info"
+                    class="w-4 h-4 text-gray-500 hover:text-blue-600 transition-colors cursor-pointer"
+                  ></lucide-angular>
 
-            <div class="flex items-center p-3 bg-blue-50 rounded-lg">
-              <lucide-angular
-                [img]="Award"
-                class="w-8 h-8 text-blue-600 mr-3"
-              ></lucide-angular>
-              <div>
-                <p class="text-sm font-medium text-gray-900">Rata-rata Skor</p>
-                <p class="text-xs text-gray-500">
-                  4.2/5.0 dari evaluasi yang selesai
-                </p>
+                  <!-- Tooltip -->
+                  <div
+                    class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10"
+                  >
+                    Lihat skala kategori penilaian
+                    <div
+                      class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"
+                    ></div>
+                  </div>
+                </button>
               </div>
-            </div>
 
-            <div class="flex items-center p-3 bg-purple-50 rounded-lg">
-              <lucide-angular
-                [img]="Target"
-                class="w-8 h-8 text-purple-600 mr-3"
-              ></lucide-angular>
-              <div>
-                <p class="text-sm font-medium text-gray-900">Target Periode</p>
-                <p class="text-xs text-gray-500">
-                  {{ stats.completionRate.toFixed(1) }}% dari target 100%
-                </p>
+              <div class="text-3xl font-bold text-blue-600 mb-1">
+                {{
+                  stats().totalOfAverages
+                    ? stats().totalOfAverages.toFixed(2)
+                    : "0.00"
+                }}
+              </div>
+              <div class="text-sm text-gray-600 mb-2">dari skala 5.0</div>
+
+              <!-- Category Badge -->
+              <div
+                class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mb-3"
+                [ngClass]="getRatingConfig().class"
+              >
+                <span>{{ getRatingConfig().label }}</span>
               </div>
             </div>
           </div>
@@ -700,4 +772,97 @@
       </div>
     </div>
   </ng-container>
+</div>
+
+<div
+  *ngIf="showScaleModal()"
+  class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+  (click)="showScaleModal.set(false)"
+>
+  <div
+    class="bg-white rounded-lg p-6 max-w-md w-full mx-4 transform transition-all duration-200 scale-100"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Modal Header -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-semibold text-gray-900">
+        Skala Kategori Penilaian
+      </h3>
+      <button
+        type="button"
+        (click)="showScaleModal.set(false)"
+        class="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+      >
+        <lucide-angular [img]="X" class="w-6 h-6"></lucide-angular>
+      </button>
+    </div>
+
+    <!-- Modal Content -->
+    <div class="space-y-3">
+      <div
+        class="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-green-500 rounded-full"></div>
+          <span class="font-medium text-gray-700">4.20 - 5.00</span>
+        </div>
+        <span
+          class="px-3 py-1 bg-green-100 text-green-800 rounded-full font-medium text-sm"
+          >Sangat Baik</span
+        >
+      </div>
+
+      <div
+        class="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+          <span class="font-medium text-gray-700">3.40 - 4.19</span>
+        </div>
+        <span
+          class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-medium text-sm"
+          >Baik</span
+        >
+      </div>
+
+      <div
+        class="flex justify-between items-center p-3 bg-yellow-50 rounded-lg border border-yellow-200"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+          <span class="font-medium text-gray-700">2.60 - 3.39</span>
+        </div>
+        <span
+          class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full font-medium text-sm"
+          >Cukup</span
+        >
+      </div>
+
+      <div
+        class="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+          <span class="font-medium text-gray-700">1.80 - 2.59</span>
+        </div>
+        <span
+          class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full font-medium text-sm"
+          >Buruk</span
+        >
+      </div>
+
+      <div
+        class="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-200"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+          <span class="font-medium text-gray-700">1.00 - 1.79</span>
+        </div>
+        <span
+          class="px-3 py-1 bg-red-100 text-red-800 rounded-full font-medium text-sm"
+          >Sangat Buruk</span
+        >
+      </div>
+    </div>
+  </div>
 </div>

@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
-import { Header } from '../../../../shared/models/app.types';
+import { Header } from '../../models/app.types';
 
 @Component({
   selector: 'app-matrix-tables',
@@ -11,6 +11,7 @@ import { Header } from '../../../../shared/models/app.types';
 export class MatrixTableComponent {
   // @Input() decorators mark these properties as inputs from a parent component
   @Input() title: string = '';
+  @Input() customTitle: string = '';
   @Input() matrix: number[][] = [];
   @Input() headers: Header[] = [];
   @Input() showHeader: boolean = true;
@@ -20,6 +21,9 @@ export class MatrixTableComponent {
 
   @Input() showPriority: boolean = false;
   @Input() priorityValues?: number[];
+
+  @Input() showPrioritySubcriteria: boolean = false;
+  @Input() prioritySubcriteriaValues?: number[];
 
   @Input() showRatio: boolean = false;
   @Input() ratioValues?: number[];

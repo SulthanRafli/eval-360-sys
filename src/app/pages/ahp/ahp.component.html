@@ -429,7 +429,11 @@
             <input
               type="checkbox"
               (change)="
-                getPreviousSubcriteriaValue(criteria()[i - 1].id, criterion.id)
+                getPreviousSubcriteriaValue(
+                  criteria()[i - 1].id,
+                  criterion.id,
+                  $event
+                )
               "
               [disabled]="
                 getSubcriteriaForCriteria(criteria()[i - 1].id).length !==
@@ -924,13 +928,17 @@
                   </app-matrix-tables>
                   <br />
                   <app-matrix-tables
-                    title="Matriks Nilai Kriteria"
+                    title="Matriks Nilai Subkriteria"
                     [matrix]="resultsCriteria()[i].weightsMatrix"
                     [headers]="defaultSubscriteria"
                     [showSum]="true"
                     [sumValues]="resultsCriteria()[i].sumWeightsMatrix"
                     [showPriority]="true"
                     [priorityValues]="resultsCriteria()[i].weights"
+                    [showPrioritySubcriteria]="true"
+                    [prioritySubcriteriaValues]="
+                      resultsCriteria()[i].weightSubcriteria
+                    "
                   >
                   </app-matrix-tables>
                   <br />

@@ -9,6 +9,7 @@ import {
   where,
   query,
   writeBatch,
+  addDoc,
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { Evaluation, Employee } from '../models/app.types';
@@ -30,6 +31,15 @@ export class EvaluationService {
   getEvaluationsByPeriod(period: string): Observable<Evaluation[]> {
     const q = query(this.evaluationsCollection, where('period', '==', period));
     return collectionData(q) as Observable<Evaluation[]>;
+  }
+
+  /**
+   * Adds a new evaluation document to the 'evaluations' collection.
+   * @param evaluation The evaluation data to add (without an id).
+   * @returns A promise that resolves with the new document reference.
+   */
+  addEvaluation(evaluation: Omit<Evaluation, 'id'>): Promise<any> {
+    return addDoc(this.evaluationsCollection, evaluation as Evaluation);
   }
 
   /**

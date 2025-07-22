@@ -210,7 +210,6 @@ export class EmployeesComponent implements OnDestroy {
       const levelSub = levelControl.valueChanges
         .pipe(startWith(levelControl.value))
         .subscribe((levelValue) => {
-          // Only clear when user is interacting, not when form is being populated
           if (
             levelValue &&
             !this.isFormBeingPopulated() &&
@@ -230,7 +229,6 @@ export class EmployeesComponent implements OnDestroy {
       const positionSub = positionControl.valueChanges
         .pipe(startWith(positionControl.value))
         .subscribe((positionValue) => {
-          // Only clear when user is interacting, not when form is being populated
           if (
             positionValue &&
             !this.isFormBeingPopulated() &&
@@ -258,13 +256,8 @@ export class EmployeesComponent implements OnDestroy {
   }
 
   private populateEmployeeForm(employee: Employee): void {
-    // Set flag to prevent clearing during population
     this.isFormBeingPopulated.set(true);
-
-    // Reset form first
     this.employeeForm.reset();
-
-    // Set all form values including arrays
     this.employeeForm.patchValue(
       {
         id: employee.id,
@@ -277,12 +270,8 @@ export class EmployeesComponent implements OnDestroy {
       },
       { emitEvent: false }
     );
-
-    // Set form arrays
     this.setFormArray('teammates', employee.teammates);
     this.setFormArray('subordinates', employee.subordinates);
-
-    // Re-enable clearing logic
     this.isFormBeingPopulated.set(false);
   }
 
@@ -325,7 +314,7 @@ export class EmployeesComponent implements OnDestroy {
       .filter((name): name is string => !!name);
   }
 
-  initials(employeeName: string | undefined): string {
+  initials(employeeName: string): string {
     if (!employeeName) return '';
     return employeeName
       .split(' ')

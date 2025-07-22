@@ -1,3 +1,5 @@
+import { Timestamp } from '@angular/fire/firestore';
+
 // src/app/core/models/app.types.ts
 export interface User {
   id: string;
@@ -37,6 +39,7 @@ export interface Criteria {
 }
 
 export interface EvaluationResponse {
+  criteriaId: string;
   questionId: string;
   score: number;
   comment?: string;
@@ -51,7 +54,7 @@ export interface Evaluation {
   status: 'pending' | 'completed' | 'in-progress';
   responses: EvaluationResponse[];
   comments?: string;
-  submittedAt?: Date;
+  submittedAt?: Date | Timestamp;
 }
 
 export interface AHPComparison {
@@ -80,6 +83,7 @@ export interface AhpResults {
   weightsMatrix: number[][];
   sumWeightsMatrix: number[];
   weights: number[];
+  weightSubcriteria?: number[];
   priorityRatios: number[];
   everyRowMatrix: number[][];
   sumEveryRowMatrix: number[];
@@ -105,4 +109,27 @@ export interface AHPWeights {
 export interface Header {
   code: string;
   name: string;
+}
+
+export interface EvaluationFormData {
+  evaluatorId: string;
+  employeeId: string;
+  type: 'supervisor' | 'peer' | 'subordinate' | 'self';
+  period: string;
+  responses: {
+    [questionId: string]: {
+      criteriaId: string;
+      score: number;
+      comment: string;
+    };
+  };
+  generalComment: string;
+}
+
+export interface EvaluationStats {
+  total: number;
+  completed: number;
+  pending: number;
+  completionRate: number;
+  totalOfAverages: number;
 }

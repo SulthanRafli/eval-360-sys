@@ -218,7 +218,7 @@
               class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
             >
               <span class="text-white font-medium text-lg">{{
-                initials(employee.name)
+                initials(employee?.name || "")
               }}</span>
             </div>
             <div class="ml-4">
@@ -238,7 +238,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex space-x-1 flex-shrink-0 ml-2">
+          <div class="flex space-x-1 flex-shrink-0 ml-2 flex-col">
             <button
               (click)="onViewEmployee(employee)"
               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors cursor-pointer"
@@ -386,7 +386,7 @@
             class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"
           >
             <span class="text-white font-medium text-sm">{{
-              initials(employeeToDelete()?.name)
+              initials(employeeToDelete()?.name || "")
             }}</span>
           </div>
           <div class="ml-3">
