@@ -42,6 +42,19 @@
             class="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
             placeholder="Email"
           />
+          @if(loginForm.get('email')?.hasError('required') &&
+          loginForm.get('email')?.touched) {
+          <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+            <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+            Email wajib diisi
+          </div>
+          } @if(loginForm.get('email')?.hasError('email') &&
+          loginForm.get('email')?.touched) {
+          <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+            <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+            Format email tidak valid
+          </div>
+          }
         </div>
         <div>
           <label for="password" class="block text-sm font-medium text-gray-700"
@@ -68,6 +81,13 @@
               }
             </button>
           </div>
+          @if(loginForm.get('password')?.invalid &&
+          loginForm.get('password')?.touched) {
+          <div class="mt-1 flex items-center gap-1 text-sm text-red-600">
+            <lucide-angular class="w-4 h-4" [img]="Info"></lucide-angular>
+            Password wajib diisi
+          </div>
+          }
         </div>
       </div>
       <div>

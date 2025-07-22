@@ -7,6 +7,7 @@ import { FirebaseError } from '@angular/fire/app';
 import {
   Eye,
   EyeClosed,
+  Info,
   LoaderCircle,
   LucideAngularModule,
   PenTool,
@@ -23,6 +24,7 @@ export class LoginComponent {
   readonly Eye = Eye;
   readonly EyeClosed = EyeClosed;
   readonly LoaderCircle = LoaderCircle;
+  readonly Info = Info;
 
   fb = inject(FormBuilder);
   authService = inject(AuthService);
@@ -49,7 +51,7 @@ export class LoginComponent {
       .login(email!, password!)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        error: (err: FirebaseError) => {
+        error: (err) => {
           if (
             err.code === 'auth/user-not-found' ||
             err.code === 'auth/wrong-password' ||
@@ -59,7 +61,7 @@ export class LoginComponent {
           } else {
             this.error.set('An error occurred. Please try again.');
           }
-          console.error('Login failed', err);
+          this.error.set(err);
         },
       });
   }

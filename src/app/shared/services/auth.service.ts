@@ -8,8 +8,8 @@ import {
   getDocs,
   limit,
 } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
-import { tap, map } from 'rxjs/operators';
+import { Observable, from } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Employee } from '../models/app.types';
 
 @Injectable({
@@ -39,17 +39,16 @@ export class AuthService {
     }
   }
 
-  login(email: string, password: string): Observable<Employee | null> {
+  login(email: string, password: string): Observable<Employee> {
     const employeesCollection = collection(this.firestore, 'employees');
     const q = query(employeesCollection, where('email', '==', email), limit(1));
 
     return from(getDocs(q)).pipe(
       map((querySnapshot) => {
         if (querySnapshot.empty) {
-          console.error(
-            'Tidak ada pengguna yang ditemukan dengan email tersebut.'
+          throw new Error(
+            'Tidak ada pengguna yang ditemukan dengan email tersebut'
           );
-          return null;
         }
 
         const userDoc = querySnapshot.docs[0];
@@ -61,8 +60,9 @@ export class AuthService {
           this.router.navigate(['/dashboard']);
           return userData;
         } else {
-          console.error('Password salah.');
-          return null;
+          throw new Error(
+            'Tidak ada pengguna yang ditemukan dengan email tersebut'
+          );
         }
       })
     );
