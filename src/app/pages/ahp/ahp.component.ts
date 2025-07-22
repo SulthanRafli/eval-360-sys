@@ -23,6 +23,8 @@ import { CriteriaService } from '../../shared/services/criteria.service';
 import { RouterModule } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MatrixTableComponent } from '../../shared/components/matrix-tables/matrix-tables.component';
+import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
+import { AuthService } from '../../shared/services/auth.service';
 
 @Component({
   selector: 'app-ahp',
@@ -42,6 +44,8 @@ export class AhpComponent {
   // Injected Services
   private criteriaService = inject(CriteriaService);
   private ahpService = inject(AhpService);
+  private activitiesService = inject(RecentActivitiesService);
+  private authService = inject(AuthService);
 
   // Icons
   readonly Info = Info;
@@ -596,6 +600,12 @@ export class AhpComponent {
 
     try {
       await this.ahpService.addWeights(newSavedWeights);
+      await this.activitiesService.addActivity(
+        `Bobot kriteria AHP telah diperbarui`,
+        this.authService.currentUserProfile()?.name || 'Sistem',
+        'FileText',
+        'yellow'
+      );
       this.showSaveModal.set(false);
       this.saveName = '';
       this.resetComparisons();

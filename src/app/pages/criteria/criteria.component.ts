@@ -16,6 +16,8 @@ import {
 import { CriteriaService } from '../../shared/services/criteria.service';
 import { Criteria, Question } from '../../shared/models/app.types';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
+import { AuthService } from '../../shared/services/auth.service';
 
 @Component({
   selector: 'app-criteria',
@@ -37,6 +39,8 @@ export class CriteriaComponent {
 
   // Inject the service
   private criteriaService = inject(CriteriaService);
+  private activitiesService = inject(RecentActivitiesService);
+  private authService = inject(AuthService);
 
   private criteria$ = this.criteriaService.getCriteria();
   public criteria = toSignal(this.criteria$, { initialValue: [] });
@@ -143,12 +147,25 @@ export class CriteriaComponent {
           this.editingCriteria()?.id || '',
           this.criteriaForm()
         );
+
+        await this.activitiesService.addActivity(
+          `Mengubah kriteria : ${this.criteriaForm()?.name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'SquarePen',
+          'yellow'
+        );
       } else {
         const newCriteria: Omit<Criteria, 'id'> = {
           ...this.criteriaForm(),
           questions: [],
         };
         await this.criteriaService.addCriteria(newCriteria);
+        await this.activitiesService.addActivity(
+          `Menambah kriteria baru : ${newCriteria.name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'PlusCircle',
+          'green'
+        );
       }
       this.closeCriteriaForm();
     } catch (error) {
@@ -246,19 +263,26 @@ export class CriteriaComponent {
         await this.criteriaService.deleteCriteria(
           (this.itemToDelete()?.item as Criteria).id
         );
+        const item = this.itemToDelete()?.item;
+        const name = item && 'name' in item ? item.name : '';
+        await this.activitiesService.addActivity(
+          `Menghapus kriteria : ${name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'Trash2',
+          'red'
+        );
       } else {
         const sub = this.itemToDelete()?.item as Question;
         await this.criteriaService.deleteQuestion(sub.criteriaId, sub.id);
       }
+      this.closeDeleteModal();
     } catch (error) {
       console.error('Error deleting item:', error);
-    } finally {
-      this.closeDeleteModal();
     }
   }
 
   closeCriteriaForm(): void {
-    this.showCriteriaForm.set(true);
+    this.showCriteriaForm.set(false);
     this.editingCriteria.set(null);
   }
 

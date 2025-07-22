@@ -1,64 +1,76 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { of, timer, throwError, switchMap } from 'rxjs';
-import { delay, tap } from 'rxjs/operators';
-import { User } from '../models/app.types';
-import { mockUsers } from '../data/mock-data';
+import {
+  Firestore,
+  collection,
+  query,
+  where,
+  getDocs,
+  limit,
+} from '@angular/fire/firestore';
+import { Observable, from, of } from 'rxjs';
+import { tap, map } from 'rxjs/operators';
+import { Employee } from '../models/app.types';
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
-  currentUser = signal<User | null | undefined>(undefined);
-  isLoading = signal<boolean>(true);
+  private router: Router = inject(Router);
+  private firestore: Firestore = inject(Firestore);
+  private readonly USER_STORAGE_KEY = 'evalsys_user';
 
-  constructor(private router: Router) {
-    this.loadInitialUser();
+  public currentUserProfile = signal<Employee | null>(null);
+
+  constructor() {
+    this.loadUserFromStorage();
   }
 
-  private loadInitialUser() {
-    this.isLoading.set(true);
-    // Simulate async check
-    timer(500).subscribe(() => {
-      const storedUser = localStorage.getItem('currentUser');
-      if (storedUser) {
-        this.currentUser.set(JSON.parse(storedUser));
-      } else {
-        this.currentUser.set(null);
+  private loadUserFromStorage(): void {
+    const userJson = localStorage.getItem(this.USER_STORAGE_KEY);
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson) as Employee;
+        this.currentUserProfile.set(user);
+      } catch (e) {
+        console.error('Gagal mem-parsing data pengguna dari localStorage', e);
+        localStorage.removeItem(this.USER_STORAGE_KEY);
       }
-      this.isLoading.set(false);
-    });
-  }
-
-  login(email: string, password: string) {
-    this.isLoading.set(true);
-
-    const foundUser = mockUsers.find(
-      (u) => u.email.toLowerCase() === email.toLowerCase()
-    );
-
-    if (foundUser && password === 'password123') {
-      return timer(1000).pipe(
-        tap(() => {
-          this.currentUser.set(foundUser);
-          localStorage.setItem('currentUser', JSON.stringify(foundUser));
-          this.isLoading.set(false);
-          this.router.navigate(['/']);
-        })
-      );
-    } else {
-      return timer(1000).pipe(
-        tap(() => {
-          this.isLoading.set(false);
-        }),
-        switchMap(() => throwError(() => new Error('Invalid credentials')))
-      );
     }
   }
 
-  logout() {
-    localStorage.removeItem('currentUser');
-    this.currentUser.set(null);
+  login(email: string, password: string): Observable<Employee | null> {
+    const employeesCollection = collection(this.firestore, 'employees');
+    const q = query(employeesCollection, where('email', '==', email), limit(1));
+
+    return from(getDocs(q)).pipe(
+      map((querySnapshot) => {
+        if (querySnapshot.empty) {
+          console.error(
+            'Tidak ada pengguna yang ditemukan dengan email tersebut.'
+          );
+          return null;
+        }
+
+        const userDoc = querySnapshot.docs[0];
+        const userData = { id: userDoc.id, ...userDoc.data() } as Employee;
+
+        if (userData.password === password) {
+          localStorage.setItem(this.USER_STORAGE_KEY, JSON.stringify(userData));
+          this.currentUserProfile.set(userData);
+          this.router.navigate(['/dashboard']);
+          return userData;
+        } else {
+          console.error('Password salah.');
+          return null;
+        }
+      })
+    );
+  }
+
+  logout(): void {
+    localStorage.removeItem(this.USER_STORAGE_KEY);
+    this.currentUserProfile.set(null);
     this.router.navigate(['/login']);
   }
 }

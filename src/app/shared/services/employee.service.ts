@@ -10,7 +10,7 @@ import {
   query,
   orderBy,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
+import { map, Observable } from 'rxjs';
 import { Employee } from '../models/app.types';
 
 @Injectable({
@@ -19,7 +19,6 @@ import { Employee } from '../models/app.types';
 export class EmployeeService {
   private firestore: Firestore = inject(Firestore);
 
-  // Create a collection reference with the type-safe converter
   private employeesCollection = collection(this.firestore, 'employees');
 
   /**
@@ -31,7 +30,11 @@ export class EmployeeService {
 
     return collectionData(orderedCollection, {
       idField: 'id',
-    }) as Observable<Employee[]>;
+    }).pipe(
+      map((employees) =>
+        employees.filter((employee) => employee['level'] !== 'admin')
+      )
+    ) as Observable<Employee[]>;
   }
 
   /**

@@ -18,7 +18,6 @@ import { AHPWeights } from '../models/app.types';
 export class AhpService {
   private firestore: Firestore = inject(Firestore);
 
-  // Create a collection reference with the converter
   private ahpWeightsCollection = collection(this.firestore, 'ahp-weights');
 
   /**
@@ -59,16 +58,13 @@ export class AhpService {
   async activateWeights(idToActivate: string): Promise<void> {
     const batch = writeBatch(this.firestore);
 
-    // Get all documents in the collection
     const querySnapshot = await getDocs(this.ahpWeightsCollection);
 
     querySnapshot.forEach((document) => {
       const docRef = doc(this.ahpWeightsCollection, document.id);
-      // Set isActive to true for the target document, and false for all others.
       batch.update(docRef, { isActive: document.id === idToActivate });
     });
 
-    // Commit the batch write
     return batch.commit();
   }
 }

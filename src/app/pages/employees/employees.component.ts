@@ -24,8 +24,11 @@ import {
   X,
   Info,
   TriangleAlert,
+  EyeClosed,
 } from 'lucide-angular';
 import { EmployeeService } from '../../shared/services/employee.service';
+import { AuthService } from '../../shared/services/auth.service';
+import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
 
 @Component({
   selector: 'app-employees',
@@ -46,9 +49,12 @@ export class EmployeesComponent implements OnDestroy {
   readonly Info = Info;
   readonly X = X;
   readonly TriangleAlert = TriangleAlert;
+  readonly EyeClosed = EyeClosed;
 
   private fb = inject(FormBuilder);
   private employeeService = inject(EmployeeService);
+  private activitiesService = inject(RecentActivitiesService);
+  private authService = inject(AuthService);
   private subscriptions = new Subscription();
 
   // --- STATE MANAGEMENT ---
@@ -72,6 +78,7 @@ export class EmployeesComponent implements OnDestroy {
     id: [null as string | null],
     name: ['', Validators.required],
     email: ['', [Validators.required, Validators.email]],
+    password: [''],
     department: ['Technology'],
     position: ['Frontend Developer', Validators.required],
     level: ['junior', Validators.required],
@@ -193,6 +200,7 @@ export class EmployeesComponent implements OnDestroy {
   isFormModalOpen = signal(false);
   formMode = signal<'create' | 'edit' | 'view'>('view');
   selectedEmployee = signal<Employee | null>(null);
+  showPassword = signal(false);
 
   ngOnInit(): void {
     this.setupFormSubscriptions();
@@ -255,6 +263,10 @@ export class EmployeesComponent implements OnDestroy {
     ids.forEach((id) => formArray.push(new FormControl(id)));
   }
 
+  toggleShowPassword() {
+    this.showPassword.update((value) => !value);
+  }
+
   private populateEmployeeForm(employee: Employee): void {
     this.isFormBeingPopulated.set(true);
     this.employeeForm.reset();
@@ -263,6 +275,7 @@ export class EmployeesComponent implements OnDestroy {
         id: employee.id,
         name: employee.name,
         email: employee.email,
+        password: employee.password,
         department: employee.department,
         position: employee.position,
         level: employee.level,
@@ -335,6 +348,7 @@ export class EmployeesComponent implements OnDestroy {
     this.selectedEmployee.set(null);
     this.isFormModalOpen.set(true);
     this.isFormBeingPopulated.set(true);
+    this.showPassword.set(false);
 
     this.employeeForm.reset();
     this.employeeForm.patchValue({
@@ -352,6 +366,7 @@ export class EmployeesComponent implements OnDestroy {
     this.formMode.set('view');
     this.selectedEmployee.set(employee);
     this.isFormModalOpen.set(true);
+    this.showPassword.set(true);
 
     this.populateEmployeeForm(employee);
     this.employeeForm.disable();
@@ -361,6 +376,7 @@ export class EmployeesComponent implements OnDestroy {
     this.formMode.set('edit');
     this.selectedEmployee.set(employee);
     this.isFormModalOpen.set(true);
+    this.showPassword.set(false);
 
     this.populateEmployeeForm(employee);
     this.employeeForm.enable();
@@ -393,6 +409,12 @@ export class EmployeesComponent implements OnDestroy {
     if (employee) {
       try {
         await this.employeeService.deleteEmployee(employee.id);
+        await this.activitiesService.addActivity(
+          `Menghapus karyawan : ${employee.name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'Trash2',
+          'red'
+        );
       } catch (error) {
         console.error('Error deleting employee:', error);
       }
@@ -418,6 +440,7 @@ export class EmployeesComponent implements OnDestroy {
         email: employeeData.email!,
         position: employeeData.position!,
         department: employeeData.department!,
+        password: employeeData.password!,
         status: 'Active',
         level: employeeData.level as 'senior' | 'junior',
         supervisor: (employeeData.supervisor || '') as string,
@@ -427,10 +450,21 @@ export class EmployeesComponent implements OnDestroy {
 
       if (this.formMode() === 'create') {
         await this.employeeService.addEmployee(dataToSave);
+        await this.activitiesService.addActivity(
+          `Menambahkan karyawan baru: ${employeeData.name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'UserPlus',
+          'green'
+        );
       } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
         const employeeId = this.selectedEmployee()!.id;
-        console.log(dataToSave);
         await this.employeeService.updateEmployee(employeeId, dataToSave);
+        await this.activitiesService.addActivity(
+          `Mengubah karyawan : ${employeeData.name}`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'SquarePen',
+          'yellow'
+        );
       }
     } catch (error) {
       console.error('Error saving employee:', error);

@@ -158,7 +158,7 @@
   </ng-container>
 
   <!-- Evaluation Detail Modal -->
-  <ng-container *ngIf="showEvaluationDetail() && selectedEvaluationDetail()">
+  <ng-container *ngIf="showEvaluationDetail()">
     <div
       class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       (click)="showEvaluationDetail.set(false)"
@@ -172,7 +172,10 @@
         >
           <div>
             <h3 class="text-lg font-medium text-gray-900">Detail Evaluasi</h3>
-            <p class="text-sm text-gray-500 mt-1">
+            <p
+              class="text-sm text-gray-500 mt-1"
+              *ngIf="selectedEvaluationDetail()"
+            >
               {{
                 getEmployeeName(selectedEvaluationDetail()?.employeeId || "")
               }}
@@ -193,57 +196,85 @@
           <!-- Evaluation Info -->
           <!-- ... (detail info here) ... -->
           <!-- Responses -->
-          <div
-            *ngFor="let criteria of allEvaluationCriteria()"
-            class="border border-gray-200 rounded-lg p-4"
+          <ng-container
+            *ngIf="selectedEvaluationDetail(); else emptyEvaluation"
           >
-            <div class="flex items-center justify-between mb-4">
-              <h5 class="font-medium text-gray-900">{{ criteria.name }}</h5>
-              <div class="text-right">
-                <div class="text-lg font-bold text-blue-600">
-                  {{ getAverageScoreForCriteria(criteria.id).toFixed(1) }}
-                </div>
-                <div class="text-xs text-gray-500">Rata-rata</div>
-              </div>
-            </div>
-            <div class="space-y-3">
-              <div
-                *ngFor="let question of criteria.questions"
-                class="bg-gray-50 p-3 rounded"
-              >
-                <ng-container
-                  *ngIf="getEvaluationForDetail(question.id) as response"
-                >
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-sm font-medium text-gray-900"
-                      >{{ question.code }}. {{ question.text }}</span
-                    >
-                    <span class="text-sm font-bold text-blue-600"
-                      >{{ response.score }} -
-                      {{ allScaleLabels[response.score].split(" - ")[1] }}</span
-                    >
+            <div
+              *ngFor="let criteria of allEvaluationCriteria()"
+              class="border border-gray-200 rounded-lg p-4"
+            >
+              <div class="flex items-center justify-between mb-4">
+                <h5 class="font-medium text-gray-900">{{ criteria.name }}</h5>
+                <div class="text-right">
+                  <div class="text-lg font-bold text-blue-600">
+                    {{ getAverageScoreForCriteria(criteria.id).toFixed(1) }}
                   </div>
-                  <p
-                    *ngIf="response.comment"
-                    class="text-sm text-gray-600 italic"
+                  <div class="text-xs text-gray-500">Rata-rata</div>
+                </div>
+              </div>
+              <div class="space-y-3">
+                <div
+                  *ngFor="let question of criteria.questions"
+                  class="bg-gray-50 p-3 rounded"
+                >
+                  <ng-container
+                    *ngIf="getEvaluationForDetail(question.id) as response"
                   >
-                    "{{ response.comment }}"
-                  </p>
-                </ng-container>
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-sm font-medium text-gray-900"
+                        >{{ question.code }}. {{ question.text }}</span
+                      >
+                      <span class="text-sm font-bold text-blue-600"
+                        >{{ response.score }} -
+                        {{
+                          allScaleLabels[response.score].split(" - ")[1]
+                        }}</span
+                      >
+                    </div>
+                    <p
+                      *ngIf="response.comment"
+                      class="text-sm text-gray-600 italic"
+                    >
+                      "{{ response.comment }}"
+                    </p>
+                  </ng-container>
+                </div>
               </div>
             </div>
-          </div>
-          <!-- General Comment -->
-          <div *ngIf="selectedEvaluationDetail()?.comments">
-            <h4 class="text-md font-medium text-gray-900 mb-2">
-              Komentar Umum
-            </h4>
-            <div class="bg-gray-50 p-4 rounded-lg">
-              <p class="text-sm text-gray-700">
-                {{ selectedEvaluationDetail()?.comments }}
-              </p>
+            <!-- General Comment -->
+            <div *ngIf="selectedEvaluationDetail()?.comments">
+              <h4 class="text-md font-medium text-gray-900 mb-2">
+                Komentar Umum
+              </h4>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-700">
+                  {{ selectedEvaluationDetail()?.comments }}
+                </p>
+              </div>
             </div>
-          </div>
+          </ng-container>
+          <ng-template #emptyEvaluation>
+            <div
+              *ngIf="filteredEvaluations().length === 0"
+              class="px-6 py-12 text-center"
+            >
+              <div
+                class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center"
+              >
+                <lucide-icon
+                  [img]="ClipboardList"
+                  class="w-12 h-12 text-gray-400"
+                ></lucide-icon>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">
+                Tidak ada evaluasi ditemukan
+              </h3>
+              <p class="text-gray-500 mb-6">
+                {{ "Data tidak ditemukan." }}
+              </p>
+              <div class="flex flex-col sm:flex-row gap-3 justify-center"></div>
+            </div>
+          </ng-template>
         </div>
         <div class="mt-6 flex justify-end">
           <button
@@ -272,14 +303,11 @@
         </p>
       </div>
       <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
-        <select
+        <input
+          type="month"
           [(ngModel)]="selectedPeriod"
-          class="block px-3 py-2 border border-gray-300 rounded-md text-sm"
-        >
-          <option *ngFor="let period of periods" [value]="period">
-            {{ period }}
-          </option>
-        </select>
+          class="block px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer"
+        />
         <div class="flex rounded-md shadow-sm">
           <button
             (click)="viewMode.set('matrix')"
@@ -348,7 +376,10 @@
     </div>
 
     <!-- Quick Start Evaluation -->
-    <div class="bg-white shadow rounded-lg p-6">
+    <div
+      class="bg-white shadow rounded-lg p-6"
+      *ngIf="currentUser?.level !== 'admin'"
+    >
       <h3 class="text-lg font-medium text-gray-900 mb-4">
         Mulai Evaluasi Baru
       </h3>
@@ -509,77 +540,96 @@
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
-          <tr
-            *ngFor="let employee of filteredEmployees()"
-            class="hover:bg-gray-50"
+          <ng-container
+            *ngIf="filteredEmployees().length !== 0; else emptyEmployee"
           >
-            <td class="px-6 py-4 whitespace-nowrap">
-              <div class="flex items-center">
-                <div
-                  class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
-                >
-                  <span class="text-white font-medium text-lg">{{
-                    initials(employee.name)
-                  }}</span>
-                </div>
-                <div class="ml-3">
-                  <p class="text-sm font-medium text-gray-900">
-                    {{ employee.name }}
-                  </p>
-                  <p class="text-sm text-gray-500">{{ employee.position }}</p>
-                </div>
-              </div>
-            </td>
-            <td
-              *ngFor="let type of evaluationTypes"
-              class="px-6 py-4 whitespace-nowrap"
+            <tr
+              *ngFor="let employee of filteredEmployees()"
+              class="hover:bg-gray-50"
             >
-              <ng-container
-                [ngSwitch]="getEvaluationStatusForType(employee.id, type.value)"
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div
+                    class="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
+                  >
+                    <span class="text-white font-medium text-lg">{{
+                      initials(employee.name)
+                    }}</span>
+                  </div>
+                  <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-900">
+                      {{ employee.name }}
+                    </p>
+                    <p class="text-sm text-gray-500">{{ employee.position }}</p>
+                  </div>
+                </div>
+              </td>
+              <td
+                *ngFor="let type of evaluationTypes"
+                class="px-6 py-4 whitespace-nowrap"
               >
-                <div class="flex justify-center" *ngSwitchCase="'completed'">
-                  <lucide-angular
-                    [img]="CircleCheck"
-                    class="w-6 h-6 text-green-400"
-                  ></lucide-angular>
+                <ng-container
+                  [ngSwitch]="
+                    getEvaluationStatusForType(employee.id, type.value)
+                  "
+                >
+                  <div class="flex justify-center" *ngSwitchCase="'completed'">
+                    <lucide-angular
+                      [img]="CircleCheck"
+                      class="w-6 h-6 text-green-400"
+                    ></lucide-angular>
+                  </div>
+                  <div
+                    class="flex justify-center"
+                    *ngSwitchCase="'in-progress'"
+                  >
+                    <lucide-angular
+                      [img]="Clock4"
+                      class="w-6 h-6 text-yellow-400"
+                    ></lucide-angular>
+                  </div>
+                  <div class="flex justify-center" *ngSwitchCase="'pending'">
+                    <lucide-angular
+                      [img]="ClockArrowUp"
+                      class="w-6 h-6 text-gray-400"
+                    ></lucide-angular>
+                  </div>
+                  <div class="flex justify-center" *ngSwitchCase="'none'">
+                    <lucide-angular
+                      [img]="CircleMinus"
+                      class="w-6 h-6 text-gray-400"
+                    ></lucide-angular>
+                  </div>
+                </ng-container>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <div class="w-16 bg-gray-200 rounded-full h-2 mx-auto">
+                  <div
+                    class="h-2 rounded-full bg-green-600"
+                    [style.width.%]="getEvaluationProgress(employee.id)"
+                  ></div>
                 </div>
-                <div class="flex justify-center" *ngSwitchCase="'in-progress'">
-                  <lucide-angular
-                    [img]="Clock4"
-                    class="w-6 h-6 text-yellow-400"
-                  ></lucide-angular>
-                </div>
-                <div class="flex justify-center" *ngSwitchCase="'pending'">
-                  <lucide-angular
-                    [img]="ClockArrowUp"
-                    class="w-6 h-6 text-gray-400"
-                  ></lucide-angular>
-                </div>
-                <div class="flex justify-center" *ngSwitchCase="'none'">
-                  <lucide-angular
-                    [img]="CircleMinus"
-                    class="w-6 h-6 text-gray-400"
-                  ></lucide-angular>
-                </div>
-              </ng-container>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
-              <div class="w-16 bg-gray-200 rounded-full h-2 mx-auto">
-                <div
-                  class="h-2 rounded-full bg-green-600"
-                  [style.width.%]="getEvaluationProgress(employee.id)"
-                ></div>
-              </div>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-center">
-              <button
-                (click)="viewEvaluationDetail(employee.id)"
-                class="text-blue-600 font-medium hover:text-blue-900 cursor-pointer"
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <button
+                  (click)="viewEvaluationDetail(employee.id)"
+                  class="text-blue-600 font-medium hover:text-blue-900 cursor-pointer"
+                >
+                  Detail
+                </button>
+              </td>
+            </tr>
+          </ng-container>
+          <ng-template #emptyEmployee>
+            <tr class="hover:bg-gray-50">
+              <td
+                colspan="100%"
+                class="px-6 py-4 whitespace-nowrap text-center"
               >
-                Detail
-              </button>
-            </td>
-          </tr>
+                Data tidak ditemukan.
+              </td>
+            </tr>
+          </ng-template>
         </tbody>
       </table>
     </div>
@@ -589,7 +639,30 @@
       *ngIf="viewMode() === 'list'"
       class="bg-white shadow overflow-hidden sm:rounded-md"
     >
-      <ul class="divide-y divide-gray-200">
+      <div
+        *ngIf="filteredEvaluations().length === 0"
+        class="px-6 py-12 text-center"
+      >
+        <div
+          class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center"
+        >
+          <lucide-icon
+            [img]="ClipboardList"
+            class="w-12 h-12 text-gray-400"
+          ></lucide-icon>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">
+          Tidak ada evaluasi ditemukan
+        </h3>
+        <p class="text-gray-500 mb-6">
+          {{ "Data tidak ditemukan." }}
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center"></div>
+      </div>
+      <ul
+        class="divide-y divide-gray-200"
+        *ngIf="filteredEvaluations().length !== 0"
+      >
         <li
           *ngFor="let evaluation of filteredEvaluations()"
           class="px-6 py-4 hover:bg-gray-50"

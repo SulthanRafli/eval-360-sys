@@ -13,6 +13,7 @@ import {
   Award,
   CircleCheck,
   CircleMinus,
+  ClipboardList,
   Clock4,
   ClockArrowUp,
   Eye,
@@ -29,10 +30,13 @@ import {
   Users,
   X,
 } from 'lucide-angular';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { CriteriaService } from '../../shared/services/criteria.service';
-import { startWith } from 'rxjs';
+import { startWith, switchMap } from 'rxjs';
 import { Timestamp } from '@angular/fire/firestore';
+import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
+import { AuthService } from '../../shared/services/auth.service';
+import moment from 'moment';
 
 @Component({
   selector: 'app-evaluations',
@@ -60,17 +64,21 @@ export class EvaluationsComponent {
   readonly Search = Search;
   readonly Info = Info;
   readonly X = X;
+  readonly ClipboardList = ClipboardList;
+  readonly Users = Users;
 
   // Injected services
   private fb = inject(FormBuilder);
   private evaluationService = inject(EvaluationService);
   private employeeService = inject(EmployeeService);
   private criteriaService = inject(CriteriaService);
+  private activitiesService = inject(RecentActivitiesService);
+  private authService = inject(AuthService);
 
   // Signal-based state properties
   selectedEmployee = signal('');
   selectedType = signal('');
-  selectedPeriod = signal('2024-Q1');
+  selectedPeriod = signal(moment().format('YYYY-MM'));
   showEvaluationForm = signal(false);
   showEvaluationDetail = signal(false);
   showScaleModal = signal(false);
@@ -102,12 +110,17 @@ export class EvaluationsComponent {
     initialValue: [],
   });
   public evaluations = toSignal(
-    this.evaluationService.getEvaluationsByPeriod(this.selectedPeriod()),
+    toObservable(this.selectedPeriod).pipe(
+      switchMap((period) =>
+        this.evaluationService.getEvaluationsByPeriod(period)
+      )
+    ),
     { initialValue: [] }
   );
   public allEvaluationCriteria = toSignal(this.criteriaService.getCriteria(), {
     initialValue: [],
   });
+  public currentUser = this.authService.currentUserProfile();
 
   filtersSignal = toSignal(
     this.filterForm.valueChanges.pipe(startWith(this.filterForm.value))
@@ -172,9 +185,13 @@ export class EvaluationsComponent {
   });
   stats = computed((): EvaluationStats => {
     const all = this.evaluations();
-    const evaluationList = all.filter(
-      (val) => val.employeeId === '0gpoWVJXNEkvUAe6eQed'
-    );
+    const evaluationList = all.filter((val) => {
+      if (this.currentUser?.level === 'admin') {
+        return val.employeeId !== this.currentUser?.id;
+      } else {
+        return val.employeeId === this.currentUser?.id;
+      }
+    });
     const total = evaluationList.length;
     const completed = evaluationList.filter(
       (e) => e.status === 'completed'
@@ -236,7 +253,13 @@ export class EvaluationsComponent {
   levels = computed(() => ['senior', 'junior']);
   evaluatableEmployees = computed(() => {
     const all = this.employees();
-    const user = all.find((val) => val.id === '0gpoWVJXNEkvUAe6eQed');
+    const user = all.find((val) => {
+      if (this.currentUser?.level === 'admin') {
+        return null;
+      } else {
+        return val.id === this.currentUser?.id;
+      }
+    });
     const type = this.selectedType();
 
     if (!user || !type) return [];
@@ -385,17 +408,12 @@ export class EvaluationsComponent {
   }
 
   startEvaluation(employeeId: string, evaluationType: string): void {
-    const employees = this.employees();
-    const currentUser = employees.find(
-      (val) => val.id === '0gpoWVJXNEkvUAe6eQed'
-    );
-
-    if (!currentUser) {
+    if (!this.currentUser) {
       return;
     }
 
     const formData: EvaluationFormData = {
-      evaluatorId: currentUser.id,
+      evaluatorId: this.currentUser.id,
       employeeId,
       type: evaluationType as any,
       period: this.selectedPeriod(),
@@ -455,6 +473,9 @@ export class EvaluationsComponent {
         comment: data.comment || '',
       }));
 
+      const employee = this.employees().find(
+        (val) => val.id === evaluation.employeeId
+      );
       const existingEval = this.evaluations().find(
         (e) =>
           e.employeeId === evaluation.employeeId &&
@@ -474,6 +495,12 @@ export class EvaluationsComponent {
           existingEval.id,
           updateData
         );
+        await this.activitiesService.addActivity(
+          `Evaluasi 360° untuk ${employee?.name} telah selesai`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'CircleCheck',
+          'green'
+        );
       } else {
         const newEvaluation: Omit<Evaluation, 'id'> = {
           evaluatorId: evaluation.evaluatorId,
@@ -486,12 +513,18 @@ export class EvaluationsComponent {
           submittedAt: Timestamp.fromDate(new Date()),
         };
         await this.evaluationService.addEvaluation(newEvaluation);
+        await this.activitiesService.addActivity(
+          `Evaluasi 360° untuk ${employee?.name} telah selesai`,
+          this.authService.currentUserProfile()?.name || 'Sistem',
+          'CircleCheck',
+          'green'
+        );
       }
 
       this.showEvaluationForm.set(false);
       this.currentEvaluation = null;
     } catch (error) {
-      console.log(error);
+      console.error(error);
     }
   }
 
@@ -660,52 +693,48 @@ export class EvaluationsComponent {
   }
 
   getEvaluationStatusForType(employeeId: string, type: string): string {
-    if (employeeId === '0gpoWVJXNEkvUAe6eQed') {
-      const employee = this.employees().find((e) => e.id === employeeId);
-      if (!employee) return 'none';
+    const employee = this.employees().find((e) => e.id === employeeId);
+    if (!employee) return 'none';
 
-      let totalRequired = 0;
-      switch (type) {
-        case 'self':
-          totalRequired = 1;
-          break;
-        case 'supervisor':
-          totalRequired = employee.supervisor ? 1 : 0;
-          break;
-        case 'peer':
-          totalRequired = employee.teammates?.length || 0;
-          break;
-        case 'subordinate':
-          totalRequired = employee.subordinates?.length || 0;
-          break;
-      }
-
-      if (totalRequired === 0) return 'none';
-
-      const relevantEvals = this.evaluations().filter((e) => {
-        if (type === 'supervisor') {
-          return e.employeeId === employeeId && e.type === 'subordinate';
-        } else if (type === 'subordinate') {
-          return e.employeeId === employeeId && e.type === 'supervisor';
-        } else {
-          return e.employeeId === employeeId && e.type === type;
-        }
-      });
-
-      const completedCount = relevantEvals.filter(
-        (e) => e.status === 'completed'
-      ).length;
-
-      if (completedCount === totalRequired) return 'completed';
-      const hasStarted = relevantEvals.some(
-        (e) => e.status === 'pending' || e.status === 'completed'
-      );
-      if (hasStarted) return 'pending';
-
-      return 'none';
-    } else {
-      return 'none';
+    let totalRequired = 0;
+    switch (type) {
+      case 'self':
+        totalRequired = 1;
+        break;
+      case 'supervisor':
+        totalRequired = employee.supervisor ? 1 : 0;
+        break;
+      case 'peer':
+        totalRequired = employee.teammates?.length || 0;
+        break;
+      case 'subordinate':
+        totalRequired = employee.subordinates?.length || 0;
+        break;
     }
+
+    if (totalRequired === 0) return 'none';
+
+    const relevantEvals = this.evaluations().filter((e) => {
+      if (type === 'supervisor') {
+        return e.employeeId === employeeId && e.type === 'subordinate';
+      } else if (type === 'subordinate') {
+        return e.employeeId === employeeId && e.type === 'supervisor';
+      } else {
+        return e.employeeId === employeeId && e.type === type;
+      }
+    });
+
+    const completedCount = relevantEvals.filter(
+      (e) => e.status === 'completed'
+    ).length;
+
+    if (completedCount === totalRequired) return 'completed';
+    const hasStarted = relevantEvals.some(
+      (e) => e.status === 'pending' || e.status === 'completed'
+    );
+    if (hasStarted) return 'in-progress';
+
+    return 'none';
   }
 
   getEvaluationForDetail(questionId: string): EvaluationResponse | undefined {
@@ -733,8 +762,13 @@ export class EvaluationsComponent {
   }
 
   getCompletedCount(type: string): number {
-    const employeeId = '';
-    const employee = this.employees().find((e) => e.id === employeeId);
+    const employee = this.employees().find((e) => {
+      if (this.currentUser?.level === 'admin') {
+        return null;
+      } else {
+        return e.id === this.currentUser?.id;
+      }
+    });
     let totalRequired = 0;
     if (!employee) {
       switch (type) {
@@ -789,9 +823,9 @@ export class EvaluationsComponent {
       }
     });
 
-    if (employeeId) {
+    if (this.currentUser?.id) {
       relevantEvals = relevantEvals.filter((e) => {
-        e.employeeId === employeeId;
+        return e.employeeId == this.currentUser?.id;
       });
     }
 
@@ -803,8 +837,13 @@ export class EvaluationsComponent {
   }
 
   getTotalCount(type: string): number {
-    const employeeId = '';
-    const employee = this.employees().find((e) => e.id === employeeId);
+    const employee = this.employees().find((e) => {
+      if (this.currentUser?.level === 'admin') {
+        return null;
+      } else {
+        return e.id === this.currentUser?.id;
+      }
+    });
     let totalRequired = 0;
     if (!employee) {
       switch (type) {

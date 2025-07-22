@@ -15,13 +15,15 @@ import {
   Award,
   Star,
 } from 'lucide-angular';
-import { ChartData, ChartOptions } from 'chart.js';
+import { ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
 import { EvaluationService } from '../../shared/services/evaluation.service';
 import { EmployeeService } from '../../shared/services/employee.service';
 import { CriteriaService } from '../../shared/services/criteria.service';
 import { AhpService } from '../../shared/services/ahp.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { toObservable, toSignal } from '@angular/core/rxjs-interop';
+import moment from 'moment';
+import { switchMap } from 'rxjs';
 
 @Component({
   selector: 'app-ranking',
@@ -47,7 +49,7 @@ export class RankingComponent {
 
   // --- Reactive State ---
   isLoading = signal(true);
-  selectedPeriod = signal('2024-Q1');
+  selectedPeriod = signal(moment().format('YYYY-MM'));
   viewMode = signal<'table' | 'chart' | 'detailed'>('table');
   selectedEmployeeId = signal('');
 
@@ -62,10 +64,13 @@ export class RankingComponent {
     initialValue: [],
   });
   evaluations = toSignal(
-    this.evaluationService.getEvaluationsByPeriod(this.selectedPeriod()),
+    toObservable(this.selectedPeriod).pipe(
+      switchMap((period) =>
+        this.evaluationService.getEvaluationsByPeriod(period)
+      )
+    ),
     { initialValue: [] }
   );
-
   // --- Core Derived State ---
   activeWeights = computed(
     () => this.savedWeights().find((w) => w.isActive) || null

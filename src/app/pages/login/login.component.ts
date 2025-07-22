@@ -3,14 +3,27 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import { AuthService } from '../../shared/services/auth.service';
+import { FirebaseError } from '@angular/fire/app';
+import {
+  Eye,
+  EyeClosed,
+  LoaderCircle,
+  LucideAngularModule,
+  PenTool,
+} from 'lucide-angular';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, LucideAngularModule],
   templateUrl: './login.component.html',
 })
 export class LoginComponent {
+  readonly PenTool = PenTool;
+  readonly Eye = Eye;
+  readonly EyeClosed = EyeClosed;
+  readonly LoaderCircle = LoaderCircle;
+
   fb = inject(FormBuilder);
   authService = inject(AuthService);
   showPassword = signal(false);
@@ -18,8 +31,8 @@ export class LoginComponent {
   isSubmitting = signal(false);
 
   loginForm = this.fb.group({
-    email: ['admin@company.com', [Validators.required, Validators.email]],
-    password: ['password123', [Validators.required]],
+    email: [null, [Validators.required, Validators.email]],
+    password: [null, [Validators.required]],
   });
 
   toggleShowPassword() {
@@ -31,12 +44,21 @@ export class LoginComponent {
     this.isSubmitting.set(true);
     this.error.set('');
     const { email, password } = this.loginForm.value;
+
     this.authService
       .login(email!, password!)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        error: (err) => {
-          this.error.set('Email atau password salah');
+        error: (err: FirebaseError) => {
+          if (
+            err.code === 'auth/user-not-found' ||
+            err.code === 'auth/wrong-password' ||
+            err.code === 'auth/invalid-credential'
+          ) {
+            this.error.set('The email or password you entered is incorrect.');
+          } else {
+            this.error.set('An error occurred. Please try again.');
+          }
           console.error('Login failed', err);
         },
       });

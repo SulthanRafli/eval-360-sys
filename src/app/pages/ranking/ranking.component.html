@@ -15,13 +15,11 @@
       </p>
     </div>
     <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
-      <select
-        class="block px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer"
-      >
-        <option value="2024-Q1">2024 - Q1</option>
-        <option value="2023-Q4">2023 - Q4</option>
-        <option value="2023-Q3">2023 - Q3</option>
-      </select>
+      <input
+        type="month"
+        [(ngModel)]="selectedPeriod"
+        class="block px-3 py-2 border border-gray-300 rounded-md text-sm cursor-pointer"
+      />
       <div class="flex rounded-md shadow-sm">
         <button
           (click)="viewMode.set('table')"
@@ -86,352 +84,367 @@
         }})
       </p>
     </div>
-  </ng-template>
 
-  <!-- Detailed View Employee Selector -->
-  <div *ngIf="viewMode() === 'detailed'" class="bg-white shadow rounded-lg p-4">
-    <label for="employee-select" class="text-sm font-medium text-gray-700 mr-4"
-      >Analisis Detail Karyawan:</label
+    <!-- Detailed View Employee Selector -->
+    <div
+      *ngIf="viewMode() === 'detailed'"
+      class="bg-white shadow rounded-lg p-4"
     >
-    <select
-      id="employee-select"
-      [(ngModel)]="selectedEmployeeId"
-      class="block w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md"
-    >
-      <option value="">Pilih karyawan...</option>
-      <option *ngFor="let score of employeeScores()" [value]="score.employeeId">
-        #{{ score.rank }} - {{ score.employee.name }} ({{
-          score.totalScore.toFixed(2)
-        }})
-      </option>
-    </select>
-  </div>
-
-  <!-- Top Performers (Not in Detailed View) -->
-  <div *ngIf="viewMode() === 'table'" class="bg-white shadow rounded-lg p-6">
-    <h3 class="text-lg font-medium text-gray-900 mb-6">Top 3 Performers</h3>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div *ngFor="let performer of topPerformers()" class="text-center">
-        <div
-          class="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 bg-gradient-to-br"
-          [ngClass]="getRankBadgeClass(performer.rank)"
+      <label
+        for="employee-select"
+        class="text-sm font-medium text-gray-700 mr-4"
+        >Analisis Detail Karyawan:</label
+      >
+      <select
+        id="employee-select"
+        [(ngModel)]="selectedEmployeeId"
+        class="block w-full md:w-1/3 px-3 py-2 border border-gray-300 rounded-md"
+      >
+        <option value="">Pilih karyawan...</option>
+        <option
+          *ngFor="let score of employeeScores()"
+          [value]="score.employeeId"
         >
-          <div class="text-white text-2xl font-bold">#{{ performer.rank }}</div>
+          #{{ score.rank }} - {{ score.employee.name }} ({{
+            score.totalScore.toFixed(2)
+          }})
+        </option>
+      </select>
+    </div>
+
+    <!-- Top Performers (Not in Detailed View) -->
+    <div *ngIf="viewMode() === 'table'" class="bg-white shadow rounded-lg p-6">
+      <h3 class="text-lg font-medium text-gray-900 mb-6">Top 3 Performers</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div *ngFor="let performer of topPerformers()" class="text-center">
+          <div
+            class="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4 bg-gradient-to-br"
+            [ngClass]="getRankBadgeClass(performer.rank)"
+          >
+            <div class="text-white text-2xl font-bold">
+              #{{ performer.rank }}
+            </div>
+          </div>
+          <h4 class="text-lg font-semibold text-gray-900">
+            {{ performer.employee.name }}
+          </h4>
+          <p class="text-sm text-gray-500">{{ performer.employee.position }}</p>
+          <p class="text-2xl font-bold text-blue-600">
+            {{ performer.totalScore.toFixed(2) }}
+          </p>
         </div>
-        <h4 class="text-lg font-semibold text-gray-900">
-          {{ performer.employee.name }}
-        </h4>
-        <p class="text-sm text-gray-500">{{ performer.employee.position }}</p>
-        <p class="text-2xl font-bold text-blue-600">
-          {{ performer.totalScore.toFixed(2) }}
-        </p>
       </div>
     </div>
-  </div>
 
-  <!-- Main Content Area -->
-  <div [ngSwitch]="viewMode()">
-    <!-- Table View -->
-    <ng-container *ngSwitchCase="'table'">
-      <div class="bg-white shadow overflow-x-auto sm:rounded-md">
-        <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-medium text-gray-900">
-              Peringkat Lengkap - 2024 - Q1
-            </h3>
+    <!-- Main Content Area -->
+    <div [ngSwitch]="viewMode()">
+      <!-- Table View -->
+      <ng-container *ngSwitchCase="'table'">
+        <div class="bg-white shadow overflow-x-auto sm:rounded-md">
+          <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+              <h3 class="text-lg font-medium text-gray-900">
+                Peringkat Lengkap - 2024 - Q1
+              </h3>
+            </div>
           </div>
-        </div>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-              >
-                Rank
-              </th>
-              <th
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
-              >
-                Karyawan
-              </th>
-              <ng-container *ngFor="let criteria of allCriteria()">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
                 <th
-                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
                 >
-                  {{ criteria.code }}
+                  Rank
                 </th>
-              </ng-container>
-              <th
-                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-              >
-                Total Score
-              </th>
-              <th
-                class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
-              >
-                Normalized
-              </th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr *ngFor="let score of employeeScores()" class="hover:bg-gray-50">
-              <td class="px-6 py-4">
-                <div class="flex items-center">
-                  <span
-                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
-                    [ngClass]="getRankBadgeClass(score.rank)"
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase"
+                >
+                  Karyawan
+                </th>
+                <ng-container *ngFor="let criteria of allCriteria()">
+                  <th
+                    class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider"
                   >
-                    {{ score.rank }}
-                  </span>
-                  <div class="ml-2">
-                    <lucide-icon
-                      [img]="getRankIcon(score.rank)"
-                      [ngClass]="getRankClass(score.rank)"
-                    />
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="flex items-center">
-                  <div
-                    class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"
-                  >
-                    <span class="text-white font-medium text-sm">
-                      {{ initials(score.employee.name) }}
+                    {{ criteria.code }}
+                  </th>
+                </ng-container>
+                <th
+                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                >
+                  Total Score
+                </th>
+                <th
+                  class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase"
+                >
+                  Normalized
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr
+                *ngFor="let score of employeeScores()"
+                class="hover:bg-gray-50"
+              >
+                <td class="px-6 py-4">
+                  <div class="flex items-center">
+                    <span
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold"
+                      [ngClass]="getRankBadgeClass(score.rank)"
+                    >
+                      {{ score.rank }}
                     </span>
-                  </div>
-                  <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">
-                      {{ score.employee.name }}
-                    </div>
-                    <div class="text-sm text-gray-500">
-                      {{ score.employee.position }}
+                    <div class="ml-2">
+                      <lucide-icon
+                        [img]="getRankIcon(score.rank)"
+                        [ngClass]="getRankClass(score.rank)"
+                      />
                     </div>
                   </div>
+                </td>
+                <td class="px-6 py-4">
+                  <div class="flex items-center">
+                    <div
+                      class="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center"
+                    >
+                      <span class="text-white font-medium text-sm">
+                        {{ initials(score.employee.name) }}
+                      </span>
+                    </div>
+                    <div class="ml-4">
+                      <div class="text-sm font-medium text-gray-900">
+                        {{ score.employee.name }}
+                      </div>
+                      <div class="text-sm text-gray-500">
+                        {{ score.employee.position }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <ng-container *ngFor="let criteria of allCriteria()">
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900"
+                  >
+                    {{
+                      getCriteria(criteria.id, score.criteriaScores).score
+                        | number : "1.0-6"
+                    }}
+                  </td>
+                </ng-container>
+                <td
+                  class="px-6 py-4 text-center text-lg font-bold text-blue-600"
+                >
+                  {{ score.totalScore.toFixed(2) }}
+                </td>
+                <td
+                  class="px-6 py-4 text-center text-sm font-medium text-green-600"
+                >
+                  {{ score.normalizedScore.toFixed(1) }}%
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ng-container>
+
+      <!-- Chart View -->
+      <ng-container *ngSwitchCase="'chart'">
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h4 class="font-bold text-gray-900">Matriks Hasil</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    Pilihan
+                  </th>
+                  <th
+                    *ngFor="let header of pivotedMatrix().headers"
+                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    {{ header }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  *ngFor="let row of pivotedMatrix().rows"
+                  class="hover:bg-gray-50"
+                >
+                  <td
+                    class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
+                  >
+                    {{ row.label }}
+                  </td>
+                  <td
+                    *ngFor="let value of row.values"
+                    class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
+                  >
+                    {{ value | number : "1.2-2" }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <br />
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h4 class="font-bold text-gray-900">Hasil Penilaian</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    Karyawan
+                  </th>
+                  <th
+                    *ngFor="let criteria of allCriteria()"
+                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    {{ criteria.code }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  *ngFor="let score of employeeScores()"
+                  class="hover:bg-gray-50"
+                >
+                  <td
+                    class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
+                  >
+                    {{ score.employee.name }}
+                  </td>
+                  <td
+                    *ngFor="let criteria of allCriteria()"
+                    class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
+                  >
+                    {{ getCriteria(criteria.id, score.criteriaScores).label }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <br />
+        <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+            <h4 class="font-bold text-gray-900">Hasil Penilaian Prioritas</h4>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th
+                    class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    Karyawan
+                  </th>
+                  <th
+                    *ngFor="let criteria of allCriteria()"
+                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    {{ criteria.code }}
+                  </th>
+                  <th
+                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                  >
+                    Total
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  *ngFor="let score of employeeScores()"
+                  class="hover:bg-gray-50"
+                >
+                  <td
+                    class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
+                  >
+                    {{ score.employee.name }}
+                  </td>
+                  <td
+                    *ngFor="let criteria of allCriteria()"
+                    class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
+                  >
+                    {{
+                      getCriteria(criteria.id, score.criteriaScores).score
+                        | number : "1.0-6"
+                    }}
+                  </td>
+                  <td
+                    class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
+                  >
+                    {{ score.totalScore | number : "1.0-6" }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Detailed View -->
+      <ng-container *ngSwitchCase="'detailed'">
+        <div
+          *ngIf="getSelectedEmployeeScore() as selectedScore; else noSelection"
+          class="space-y-6"
+        >
+          <div class="bg-white shadow rounded-lg p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div>
+                <h4 class="text-md font-medium text-gray-900 mb-4">
+                  Profil Kompetensi
+                </h4>
+                <div class="h-80">
+                  <canvas
+                    baseChart
+                    [data]="radarChartData()"
+                    [options]="radarChartOptions"
+                    type="radar"
+                  >
+                  </canvas>
                 </div>
-              </td>
-              <ng-container *ngFor="let criteria of allCriteria()">
-                <td
-                  class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900"
-                >
-                  {{
-                    getCriteria(criteria.id, score.criteriaScores).score
-                      | number : "1.0-6"
-                  }}
-                </td>
-              </ng-container>
-              <td class="px-6 py-4 text-center text-lg font-bold text-blue-600">
-                {{ score.totalScore.toFixed(2) }}
-              </td>
-              <td
-                class="px-6 py-4 text-center text-sm font-medium text-green-600"
-              >
-                {{ score.normalizedScore.toFixed(1) }}%
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </ng-container>
-
-    <!-- Chart View -->
-    <ng-container *ngSwitchCase="'chart'">
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h4 class="font-bold text-gray-900">Matriks Hasil</h4>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  Pilihan
-                </th>
-                <th
-                  *ngFor="let header of pivotedMatrix().headers"
-                  class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  {{ header }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr
-                *ngFor="let row of pivotedMatrix().rows"
-                class="hover:bg-gray-50"
-              >
-                <td
-                  class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
-                >
-                  {{ row.label }}
-                </td>
-                <td
-                  *ngFor="let value of row.values"
-                  class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
-                >
-                  {{ value | number : "1.2-2" }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <br />
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h4 class="font-bold text-gray-900">Hasil Penilaian</h4>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  Karyawan
-                </th>
-                <th
-                  *ngFor="let criteria of allCriteria()"
-                  class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  {{ criteria.code }}
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr
-                *ngFor="let score of employeeScores()"
-                class="hover:bg-gray-50"
-              >
-                <td
-                  class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
-                >
-                  {{ score.employee.name }}
-                </td>
-                <td
-                  *ngFor="let criteria of allCriteria()"
-                  class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
-                >
-                  {{ getCriteria(criteria.id, score.criteriaScores).label }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <br />
-      <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h4 class="font-bold text-gray-900">Hasil Penilaian Prioritas</h4>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th
-                  class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  Karyawan
-                </th>
-                <th
-                  *ngFor="let criteria of allCriteria()"
-                  class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  {{ criteria.code }}
-                </th>
-                <th
-                  class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
-                >
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr
-                *ngFor="let score of employeeScores()"
-                class="hover:bg-gray-50"
-              >
-                <td
-                  class="px-3 py-2 text-sm font-medium text-gray-900 border-r border-gray-200"
-                >
-                  {{ score.employee.name }}
-                </td>
-                <td
-                  *ngFor="let criteria of allCriteria()"
-                  class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
-                >
-                  {{
-                    getCriteria(criteria.id, score.criteriaScores).score
-                      | number : "1.0-6"
-                  }}
-                </td>
-                <td
-                  class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
-                >
-                  {{ score.totalScore | number : "1.0-6" }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </ng-container>
-
-    <!-- Detailed View -->
-    <ng-container *ngSwitchCase="'detailed'">
-      <div
-        *ngIf="getSelectedEmployeeScore() as selectedScore; else noSelection"
-        class="space-y-6"
-      >
-        <div class="bg-white shadow rounded-lg p-6">
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div>
-              <h4 class="text-md font-medium text-gray-900 mb-4">
-                Profil Kompetensi
-              </h4>
-              <div class="h-80">
-                <canvas
-                  baseChart
-                  [data]="radarChartData()"
-                  [options]="radarChartOptions"
-                  type="radar"
-                >
-                </canvas>
               </div>
-            </div>
-            <div>
-              <h4 class="text-md font-medium text-gray-900 mb-4">
-                Breakdown per Kriteria
-              </h4>
-              <div class="space-y-4">
-                <div
-                  *ngFor="let criteria of allCriteria()"
-                  class="border border-gray-200 rounded-lg p-4"
-                >
-                  <div class="flex justify-between items-center">
-                    <h5 class="font-medium text-gray-900">
-                      {{ criteria.name }}
-                    </h5>
-                    <p class="text-lg font-bold text-blue-600">
-                      {{
-                        getCriteriaBySelectedEmployee(criteria.id).scoreReal
-                          | number : "1.0-1"
-                      }}
-                    </p>
+              <div>
+                <h4 class="text-md font-medium text-gray-900 mb-4">
+                  Breakdown per Kriteria
+                </h4>
+                <div class="space-y-4">
+                  <div
+                    *ngFor="let criteria of allCriteria()"
+                    class="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div class="flex justify-between items-center">
+                      <h5 class="font-medium text-gray-900">
+                        {{ criteria.name }}
+                      </h5>
+                      <p class="text-lg font-bold text-blue-600">
+                        {{
+                          getCriteriaBySelectedEmployee(criteria.id).scoreReal
+                            | number : "1.0-1"
+                        }}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-      <ng-template #noSelection>
-        <div class="text-center bg-white shadow rounded-lg p-8">
-          <p>Pilih karyawan dari dropdown untuk melihat analisis detail.</p>
-        </div>
-      </ng-template>
-    </ng-container>
-  </div>
+        <ng-template #noSelection>
+          <div class="text-center bg-white shadow rounded-lg p-8">
+            <p>Pilih karyawan dari dropdown untuk melihat analisis detail.</p>
+          </div>
+        </ng-template>
+      </ng-container>
+    </div>
+  </ng-template>
 </div>

@@ -138,7 +138,6 @@ export class CriteriaService {
     const newCriteriaRef = doc(this.firestore, 'criteria', newCriteriaId);
 
     return runTransaction(this.firestore, async (transaction) => {
-      // 1. Get both documents
       const oldDoc = await transaction.get(oldCriteriaRef);
       const newDoc = await transaction.get(newCriteriaRef);
 
@@ -146,16 +145,14 @@ export class CriteriaService {
         throw 'One or both criteria documents do not exist!';
       }
 
-      // 2. Remove question from the old criterion's array
       const oldQuestions = oldDoc.data()['questions'] || [];
       const updatedOldQuestions = oldQuestions.filter(
         (q: Question) => q.id !== question.id
       );
       transaction.update(oldCriteriaRef, { questions: updatedOldQuestions });
 
-      // 3. Add question to the new criterion's array
       const newQuestions = newDoc.data()['questions'] || [];
-      const updatedQuestion = { ...question, criteriaId: newCriteriaId }; // Update criteriaId in the question object
+      const updatedQuestion = { ...question, criteriaId: newCriteriaId };
       const updatedNewQuestions = [...newQuestions, updatedQuestion];
       transaction.update(newCriteriaRef, { questions: updatedNewQuestions });
     });

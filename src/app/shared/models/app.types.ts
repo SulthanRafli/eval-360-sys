@@ -1,23 +1,14 @@
 import { Timestamp } from '@angular/fire/firestore';
 
 // src/app/core/models/app.types.ts
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'user';
-  department: string;
-  position: string;
-  level: 'senior' | 'junior';
-}
-
 export interface Employee {
   id: string;
   name: string;
   email: string;
+  password: string;
   department: string;
   position: string;
-  level: 'senior' | 'junior';
+  level: 'senior' | 'junior' | 'admin';
   supervisor?: string;
   status?: string;
   teammates: string[];
@@ -132,4 +123,13 @@ export interface EvaluationStats {
   pending: number;
   completionRate: number;
   totalOfAverages: number;
+}
+
+export interface Activity {
+  id: string;
+  message: string;
+  user: string;
+  timestamp: Date;
+  icon: any;
+  color: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
 }

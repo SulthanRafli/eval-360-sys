@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../shared/services/auth.service';
@@ -43,22 +43,40 @@ export class LayoutComponent {
   isSidebarOpen = signal(false);
 
   // Navigation items with inline SVG for icons
-  public navigation = [
-    {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: LayoutDashboard,
-    },
-    { name: 'Karyawan', href: '/employees', icon: Users },
-    {
-      name: 'Evaluasi 360°',
-      href: '/evaluations',
-      icon: ClipboardPenLine,
-    },
-    { name: 'Ranking', href: '/ranking', icon: Award },
-    { name: 'AHP Setup', href: '/ahp', icon: Calculator },
-    { name: 'Criteria Setup', href: '/criteria', icon: Settings },
-  ];
+  navigation = computed(() => {
+    const user = this.authService.currentUserProfile();
+    let navigationFiltered = [
+      {
+        name: 'Dashboard',
+        href: '/dashboard',
+        icon: LayoutDashboard,
+      },
+      { name: 'Karyawan', href: '/employees', icon: Users },
+      {
+        name: 'Evaluasi 360°',
+        href: '/evaluations',
+        icon: ClipboardPenLine,
+      },
+      { name: 'Ranking', href: '/ranking', icon: Award },
+      { name: 'AHP Setup', href: '/ahp', icon: Calculator },
+      { name: 'Criteria Setup', href: '/criteria', icon: Settings },
+    ];
+    if (user?.level !== 'admin') {
+      navigationFiltered = [
+        {
+          name: 'Dashboard',
+          href: '/dashboard',
+          icon: LayoutDashboard,
+        },
+        {
+          name: 'Evaluasi 360°',
+          href: '/evaluations',
+          icon: ClipboardPenLine,
+        },
+      ];
+    }
+    return navigationFiltered;
+  });
 
   public logout() {
     this.authService.logout();
@@ -66,5 +84,15 @@ export class LayoutComponent {
 
   public toggleSidebar() {
     this.isSidebarOpen.update((value) => !value);
+  }
+
+  initials(employeeName: string): string {
+    if (!employeeName) return '';
+    return employeeName
+      .split(' ')
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
   }
 }

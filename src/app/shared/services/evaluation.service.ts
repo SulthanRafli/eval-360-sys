@@ -20,7 +20,6 @@ import { Evaluation, Employee } from '../models/app.types';
 export class EvaluationService {
   private firestore: Firestore = inject(Firestore);
 
-  // Create a collection reference with the type-safe converter
   private evaluationsCollection = collection(this.firestore, 'evaluations');
 
   /**
@@ -77,10 +76,8 @@ export class EvaluationService {
     const batch = writeBatch(this.firestore);
 
     allEmployees.forEach((employee) => {
-      // Self-evaluation
       this.createPendingEval(batch, period, employee.id, employee.id, 'self');
 
-      // Supervisor evaluation
       if (employee.supervisor) {
         this.createPendingEval(
           batch,
@@ -91,12 +88,10 @@ export class EvaluationService {
         );
       }
 
-      // Peer evaluations
       employee.teammates.forEach((teammateId) => {
         this.createPendingEval(batch, period, employee.id, teammateId, 'peer');
       });
 
-      // Subordinate evaluations
       employee.subordinates.forEach((subordinateId) => {
         this.createPendingEval(
           batch,
@@ -118,7 +113,7 @@ export class EvaluationService {
     evaluatorId: string,
     type: 'self' | 'supervisor' | 'peer' | 'subordinate'
   ) {
-    const newEvalDocRef = doc(this.evaluationsCollection); // Create a new doc reference
+    const newEvalDocRef = doc(this.evaluationsCollection);
     const evaluation: Omit<Evaluation, 'id'> = {
       employeeId,
       evaluatorId,

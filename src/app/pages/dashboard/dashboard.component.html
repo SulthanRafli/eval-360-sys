@@ -19,7 +19,7 @@
           [img]="Calendar"
           class="w-4 h-4 mr-2 text-gray-400"
         ></lucide-angular>
-        Periode 2024-Q1
+        Periode {{ selectedPeriod() | date : "YYYY MMMM" }}
       </button>
     </div>
   </div>
@@ -27,7 +27,7 @@
   <!-- Stats Cards -->
   <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
     <div
-      *ngFor="let stat of stats"
+      *ngFor="let stat of stats()"
       class="relative bg-white pt-5 px-4 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
     >
       <dt>
@@ -49,22 +49,6 @@
         <p class="text-2xl font-semibold text-gray-900">
           {{ stat.value }}
         </p>
-        <p
-          class="ml-2 flex items-baseline text-sm font-semibold"
-          [ngClass]="
-            stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
-          "
-        >
-          <lucide-angular
-            [img]="stat.changeType === 'decrease' ? TrendingDown : TrendingUp"
-            class="w-4 h-4"
-          ></lucide-angular>
-          <span
-            class="self-center flex-shrink-0 h-4 w-4"
-            [class.rotate-180]="stat.changeType === 'decrease'"
-          ></span>
-          <span class="ml-1">{{ stat.change }}</span>
-        </p>
       </dd>
     </div>
   </div>
@@ -78,7 +62,7 @@
         </h3>
         <div class="space-y-4">
           <div
-            *ngFor="let dept of departmentStats"
+            *ngFor="let dept of departmentStats()"
             class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
           >
             <div>
@@ -105,59 +89,85 @@
           Aktivitas Terbaru
         </h3>
         <div class="flow-root">
-          <ul class="-mb-8">
-            <li *ngFor="let activity of recentActivities; let isLast = last">
-              <div class="relative pb-8">
-                <span
-                  *ngIf="!isLast"
-                  class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
-                  aria-hidden="true"
-                ></span>
-                <div class="relative flex space-x-3">
-                  <div>
-                    <span
-                      class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white"
-                      [ngClass]="getStatColorClass(activity.color)"
-                    >
-                      <lucide-angular
-                        [img]="activity.icon"
-                        class="h-6 w-6 text-white items-center justify-center"
-                      ></lucide-angular>
-                    </span>
-                  </div>
-                  <div
-                    class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4"
-                  >
+          <div *ngIf="recentActivities().length > 0; else emptyState">
+            <ul class="-mb-8">
+              <li
+                *ngFor="let activity of recentActivities(); let isLast = last"
+              >
+                <div class="relative pb-8">
+                  <span
+                    *ngIf="!isLast"
+                    class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"
+                    aria-hidden="true"
+                  ></span>
+                  <div class="relative flex space-x-3">
                     <div>
-                      <p class="text-sm text-gray-500">
-                        {{ activity.message }}
-                        <span class="font-medium text-gray-900">
-                          oleh {{ activity.user }}
-                        </span>
-                      </p>
+                      <span
+                        class="h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white"
+                        [ngClass]="getStatColorClass(activity.color)"
+                      >
+                        <lucide-angular
+                          [img]="getIcon(activity.icon)"
+                          class="h-6 w-6 text-white items-center justify-center"
+                        ></lucide-angular>
+                      </span>
                     </div>
                     <div
-                      class="text-right text-sm whitespace-nowrap text-gray-500"
+                      class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4"
                     >
-                      {{ activity.time }}
+                      <div>
+                        <p class="text-sm text-gray-500">
+                          {{ activity.message }}
+                          <span class="font-medium text-gray-900">
+                            oleh {{ activity.user }}
+                          </span>
+                        </p>
+                      </div>
+                      <div
+                        class="text-right text-sm whitespace-nowrap text-gray-500"
+                      >
+                        {{
+                          formatCreatedAt(activity.timestamp) | date : "short"
+                        }}
+                      </div>
                     </div>
                   </div>
                 </div>
+              </li>
+            </ul>
+          </div>
+          <ng-template #emptyState>
+            <div class="text-center py-8">
+              <div
+                class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100"
+              >
+                <lucide-angular
+                  [img]="Archive"
+                  class="h-6 w-6 text-gray-400"
+                ></lucide-angular>
               </div>
-            </li>
-          </ul>
+              <h3 class="mt-4 text-sm font-semibold text-gray-900">
+                Tidak Ada Aktivitas
+              </h3>
+              <p class="mt-1 text-sm text-gray-500">
+                Belum ada aktivitas terbaru yang tercatat.
+              </p>
+            </div>
+          </ng-template>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Quick Actions -->
-  <div class="bg-white shadow rounded-lg">
+  @if(authService.currentUserProfile(); as user) {
+  <div class="bg-white shadow rounded-lg" *ngIf="user.level === 'admin'">
     <div class="px-4 py-5 sm:p-6">
       <h3 class="text-lg font-medium text-gray-900 mb-4">Aksi Cepat</h3>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
+        <a
           class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200 cursor-pointer"
+          href="/evaluations"
         >
           <lucide-angular
             [img]="ClipboardList"
@@ -167,10 +177,11 @@
             <p class="font-medium text-gray-900">Buat Evaluasi Baru</p>
             <p class="text-sm text-gray-500">Mulai siklus evaluasi 360°</p>
           </div>
-        </button>
+        </a>
 
-        <button
+        <a
           class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200 cursor-pointer"
+          href="/ranking"
         >
           <lucide-angular
             [img]="Award"
@@ -180,10 +191,11 @@
             <p class="font-medium text-gray-900">Lihat Ranking</p>
             <p class="text-sm text-gray-500">Peringkat karyawan terbaik</p>
           </div>
-        </button>
+        </a>
 
-        <button
+        <a
           class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200 cursor-pointer"
+          href="/ahp"
         >
           <lucide-angular
             [img]="Calculator"
@@ -193,8 +205,9 @@
             <p class="font-medium text-gray-900">Setup AHP</p>
             <p class="text-sm text-gray-500">Konfigurasi bobot kriteria</p>
           </div>
-        </button>
+        </a>
       </div>
     </div>
   </div>
+  }
 </div>

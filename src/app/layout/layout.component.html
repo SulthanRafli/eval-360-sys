@@ -33,7 +33,7 @@
       </div>
       <div class="mt-8 flex-grow flex flex-col">
         <nav class="flex-1 px-2 space-y-1">
-          <div *ngFor="let item of navigation">
+          <div *ngFor="let item of navigation()">
             <a
               [routerLink]="item.href"
               routerLinkActive="active-link"
@@ -92,26 +92,23 @@
             </div>
           </div>
 
-          @if(authService.currentUser(); as user) {
+          @if(authService.currentUserProfile(); as user) {
           <div class="flex items-center space-x-2 md:space-x-4">
-            <button
-              class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full cursor-pointer"
-            >
-              <lucide-icon [img]="Bell" class="w-5 h-5"></lucide-icon>
-              <span
-                class="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"
-              ></span>
-            </button>
-
             <div class="flex items-center space-x-3">
               <div
-                class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center"
+                class="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0"
               >
-                <lucide-icon [img]="User" class="w-5 h-5"></lucide-icon>
+                <span class="text-white font-medium text-lg">{{
+                  initials(user?.name || "")
+                }}</span>
               </div>
               <div class="hidden md:block">
-                <p class="text-sm font-medium text-gray-700">{{ user.name }}</p>
-                <p class="text-xs text-gray-500 capitalize">{{ user.role }}</p>
+                <p class="text-sm font-medium text-gray-700">
+                  {{ user?.name }}
+                </p>
+                <p class="text-xs text-gray-500 capitalize">
+                  {{ user?.level }}
+                </p>
               </div>
               <button
                 (click)="logout()"
