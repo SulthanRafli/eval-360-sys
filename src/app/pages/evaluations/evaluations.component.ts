@@ -87,7 +87,7 @@ export class EvaluationsComponent {
   showEvaluationDetail = signal(false);
   showScaleModal = signal(false);
   showDeleteModal = signal(false);
-  currentEvaluation: EvaluationFormData | null = null;
+  currentEvaluation = signal<EvaluationFormData | null>(null);
   selectedEvaluationDetail = signal<Evaluation | null>(null);
   selectedEvaluationId = signal('');
   viewMode = signal<'matrix' | 'list' | 'stats'>('matrix');
@@ -294,10 +294,10 @@ export class EvaluationsComponent {
     }
   });
   getAnsweredQuestionsCount = computed(() => {
-    if (!this.currentEvaluation) return 0;
-    return Object.values(this.currentEvaluation.responses).filter(
-      (r) => r.score > 0
-    ).length;
+    const currentEval = this.currentEvaluation();
+    if (!currentEval || !currentEval.responses) return 0;
+    return Object.values(currentEval.responses).filter((r) => r.score > 0)
+      .length;
   });
   getTotalQuestionsCount = computed(() => {
     return this.allEvaluationCriteria().reduce(
@@ -423,7 +423,7 @@ export class EvaluationsComponent {
       });
     });
 
-    this.currentEvaluation = formData;
+    this.currentEvaluation.set(formData);
     this.showEvaluationForm.set(true);
   }
 
@@ -433,7 +433,7 @@ export class EvaluationsComponent {
     score: number,
     comment: string = ''
   ): void {
-    const evaluation = this.currentEvaluation;
+    const evaluation = this.currentEvaluation();
     if (!evaluation) return;
 
     const updatedEvaluation = {
@@ -448,11 +448,11 @@ export class EvaluationsComponent {
       },
     };
 
-    this.currentEvaluation = updatedEvaluation;
+    this.currentEvaluation.set(updatedEvaluation);
   }
 
   async submitEvaluation(): Promise<void> {
-    const evaluation = this.currentEvaluation;
+    const evaluation = this.currentEvaluation();
     if (!evaluation) return;
 
     try {
@@ -515,14 +515,14 @@ export class EvaluationsComponent {
       }
 
       this.showEvaluationForm.set(false);
-      this.currentEvaluation = null;
+      this.currentEvaluation.set(null);
     } catch (error) {
       this.snackbarService.error(`Gagal menyimpan evaluasi`);
     }
   }
 
   async saveDraft(): Promise<void> {
-    const evaluation = this.currentEvaluation;
+    const evaluation = this.currentEvaluation();
     if (!evaluation) return;
 
     try {
@@ -571,7 +571,7 @@ export class EvaluationsComponent {
       }
 
       this.showEvaluationForm.set(false);
-      this.currentEvaluation = null;
+      this.currentEvaluation.set(null);
     } catch (error) {
       this.snackbarService.error(`Gagal menyimpan evaluasi`);
     }
@@ -602,6 +602,45 @@ export class EvaluationsComponent {
 
   getEmployeeName(id: string): string {
     return this.employees().find((e) => e.id === id)?.name || 'Unknown';
+  }
+
+  getQuestionComment(questionId: string): string {
+    const response = this.currentEvaluation()?.responses[questionId];
+    return response?.comment ?? '';
+  }
+
+  getQuestionScore(questionId: string): number | null {
+    const response = this.currentEvaluation()?.responses[questionId];
+    return response?.score ?? null;
+  }
+
+  updateQuestionComment(questionId: string, comment: string): void {
+    const current = this.currentEvaluation();
+    if (current) {
+      const currentResponse = current.responses?.[questionId];
+
+      this.currentEvaluation.set({
+        ...current,
+        responses: {
+          ...current.responses,
+          [questionId]: {
+            criteriaId: currentResponse?.criteriaId || '',
+            score: currentResponse?.score || 0,
+            comment: comment,
+          },
+        },
+      });
+    }
+  }
+
+  updateGeneralComment(comment: string) {
+    const current = this.currentEvaluation();
+    if (current) {
+      this.currentEvaluation.set({
+        ...current,
+        generalComment: comment,
+      });
+    }
   }
 
   getStatusClass(status: string): string {
@@ -891,14 +930,15 @@ export class EvaluationsComponent {
   }
 
   getAveragePerCriteria(criteriaId: string) {
-    if (!this.currentEvaluation) return 0;
+    const currentEval = this.currentEvaluation();
+    if (!currentEval) return 0;
     const criteria = this.allEvaluationCriteria().find(
       (val) => val.id === criteriaId
     );
     return (
-      Object.values(this.currentEvaluation.responses)
-        .filter((r) => r.criteriaId === criteriaId)
-        .reduce((sum, val) => sum + val.score, 0) /
+      Object.values(currentEval.responses)
+        .filter((r) => (r as EvaluationResponse).criteriaId === criteriaId)
+        .reduce((sum, val) => sum + (val as EvaluationResponse).score, 0) /
       (criteria?.questions.length || 1)
     );
   }
