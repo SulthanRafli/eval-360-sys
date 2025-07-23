@@ -2,11 +2,6 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
-  calculateMultipleEmployeeScores,
-  CriteriaScore,
-  EmployeeAHPScore,
-} from '../../shared/utils/ahpCalculations';
-import {
   Settings,
   LucideAngularModule,
   Calculator,
@@ -27,6 +22,7 @@ import moment from 'moment';
 import { switchMap } from 'rxjs';
 import { Router } from '@angular/router';
 import { AuthService } from '../../shared/services/auth.service';
+import { CriteriaScore, EmployeeAHPScore } from '../../shared/models/app.types';
 
 @Component({
   selector: 'app-ranking',
@@ -52,6 +48,14 @@ export class RankingComponent {
   readonly Award = Award;
   readonly Star = Star;
   readonly Info = Info;
+  readonly ratingsMap = [
+    { label: 'Sangat Baik', code: 'SB', minValue: 4.2 },
+    { label: 'Baik', code: 'B', minValue: 3.4, maxValue: 4.2 },
+    { label: 'Cukup', code: 'C', minValue: 2.6, maxValue: 3.4 },
+    { label: 'Buruk', code: 'K', minValue: 1.8, maxValue: 2.6 },
+    { label: 'Sangat Buruk', code: 'SK', minValue: 1.0, maxValue: 1.8 },
+    { label: '-', code: '', minValue: 0, maxValue: 1.0 },
+  ];
 
   // --- Reactive State ---
   isLoading = signal(true);
@@ -132,7 +136,7 @@ export class RankingComponent {
 
     let ahpScores: EmployeeAHPScore[];
     if (weights) {
-      ahpScores = calculateMultipleEmployeeScores(
+      ahpScores = this.calculateMultipleEmployeeScores(
         averagedScores,
         weights.weights,
         weights.subcriteriaWeights ?? {},
@@ -148,7 +152,7 @@ export class RankingComponent {
           equalSubWeights[c.id][q.id] = 1 / c.questions.length;
         });
       });
-      ahpScores = calculateMultipleEmployeeScores(
+      ahpScores = this.calculateMultipleEmployeeScores(
         averagedScores,
         equalWeights,
         equalSubWeights,
@@ -312,6 +316,92 @@ export class RankingComponent {
       score: cScore?.score || 0,
       scoreReal: cScore?.scoreReal || 0,
       label: cScore?.label || '-',
+    };
+  }
+
+  calculateMultipleEmployeeScores(
+    employeeEvaluations: {
+      [employeeId: string]: { [questionId: string]: number };
+    },
+    criteriaWeights: { [criteriaId: string]: number },
+    subcriteriaWeights: {
+      [criteriaId: string]: { [subcriteriaId: string]: number };
+    },
+    criteriaSubcriteriaMapping: Record<string, string>
+  ): EmployeeAHPScore[] {
+    return Object.keys(employeeEvaluations)
+      .map((employeeId) =>
+        this.calculateEmployeeAHPScore(
+          employeeId,
+          employeeEvaluations[employeeId],
+          criteriaWeights,
+          subcriteriaWeights,
+          criteriaSubcriteriaMapping
+        )
+      )
+      .sort((a, b) => b.totalScore - a.totalScore);
+  }
+
+  calculateEmployeeAHPScore(
+    employeeId: string,
+    evaluationResponses: { [criteriaId: string]: number },
+    criteriaWeights: { [criteriaId: string]: number },
+    subcriteriaWeights: {
+      [criteriaId: string]: { [subcriteriaId: string]: number };
+    },
+    criteriaSubcriteriaMapping: Record<string, string>
+  ): EmployeeAHPScore {
+    const criteriaScores: CriteriaScore[] = [];
+    let totalScore = 0;
+    let totalScoreReal = 0;
+
+    // Calculate score for each criteria
+    Object.keys(criteriaWeights).forEach((criteriaId) => {
+      const criteriaCode = criteriaSubcriteriaMapping[criteriaId];
+      const score = evaluationResponses[criteriaId] || 0;
+      const ratingConfig = this.ratingsMap.find(
+        (r) =>
+          score >= r.minValue &&
+          (r.maxValue === undefined || score < r.maxValue)
+      );
+      const criteriaWeight = criteriaWeights[criteriaId];
+      const subcriteriaWeight = subcriteriaWeights[criteriaId];
+      let targetKey: string | undefined = undefined;
+      if (ratingConfig) {
+        targetKey = Object.keys(subcriteriaWeight).find((key) =>
+          key.endsWith(`-${ratingConfig.code}`)
+        );
+      }
+
+      const scorePriority = targetKey
+        ? subcriteriaWeight[targetKey] * criteriaWeight
+        : 0;
+
+      criteriaScores.push({
+        criteriaId,
+        criteriaWeight,
+        criteriaCode,
+        score: scorePriority,
+        scoreReal: score,
+        label: ratingConfig?.label || '-',
+      });
+
+      totalScore += scorePriority;
+      totalScoreReal += score;
+    });
+
+    // Normalize score to 0-100 scale (assuming max possible score is 5)
+    const maxPossibleScore = 5;
+    const normalizedScore = (totalScore / maxPossibleScore) * 100;
+    const finalTotalScore =
+      totalScoreReal / Object.keys(criteriaWeights).length;
+
+    return {
+      employeeId,
+      criteriaScores: criteriaScores,
+      totalScore,
+      totalScoreReal: finalTotalScore,
+      normalizedScore,
     };
   }
 }

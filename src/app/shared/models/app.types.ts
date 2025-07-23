@@ -133,3 +133,20 @@ export interface Activity {
   icon: any;
   color: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
 }
+
+export interface CriteriaScore {
+  criteriaId: string;
+  criteriaWeight: number;
+  criteriaCode: string;
+  score: number;
+  scoreReal: number;
+  label: string;
+}
+
+export interface EmployeeAHPScore {
+  employeeId: string;
+  criteriaScores: CriteriaScore[];
+  totalScore: number;
+  totalScoreReal: number;
+  normalizedScore: number; // 0-100 scale
+}
