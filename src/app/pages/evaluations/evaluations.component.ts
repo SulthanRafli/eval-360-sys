@@ -379,7 +379,7 @@ export class EvaluationsComponent {
   onSelectedTypeChange(value: string): void {
     this.selectedEmployee.set('');
     if (value === 'self') {
-      this.selectedEmployee.set('0gpoWVJXNEkvUAe6eQed');
+      this.selectedEmployee.set(this.currentUser?.id || '');
     }
   }
 
