@@ -866,7 +866,7 @@ export class EvaluationsComponent {
       }
     });
 
-    if (this.currentUser?.id) {
+    if (this.currentUser?.id && this.currentUser?.level !== 'admin') {
       relevantEvals = relevantEvals.filter((e) => {
         return e.employeeId == this.currentUser?.id;
       });
