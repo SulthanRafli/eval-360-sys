@@ -25,6 +25,7 @@ import {
   Target,
   Trash2,
   TrendingUp,
+  TriangleAlert,
   User,
   UserCheck,
   Users,
@@ -37,6 +38,7 @@ import { Timestamp } from '@angular/fire/firestore';
 import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
 import { AuthService } from '../../shared/services/auth.service';
 import moment from 'moment';
+import { SnackbarService } from '../../shared/services/snackbar.service';
 
 @Component({
   selector: 'app-evaluations',
@@ -66,6 +68,7 @@ export class EvaluationsComponent {
   readonly X = X;
   readonly ClipboardList = ClipboardList;
   readonly Users = Users;
+  readonly TriangleAlert = TriangleAlert;
 
   // Injected services
   private fb = inject(FormBuilder);
@@ -74,6 +77,7 @@ export class EvaluationsComponent {
   private criteriaService = inject(CriteriaService);
   private activitiesService = inject(RecentActivitiesService);
   private authService = inject(AuthService);
+  private snackbarService = inject(SnackbarService);
 
   // Signal-based state properties
   selectedEmployee = signal('');
@@ -82,8 +86,10 @@ export class EvaluationsComponent {
   showEvaluationForm = signal(false);
   showEvaluationDetail = signal(false);
   showScaleModal = signal(false);
+  showDeleteModal = signal(false);
   currentEvaluation: EvaluationFormData | null = null;
   selectedEvaluationDetail = signal<Evaluation | null>(null);
+  selectedEvaluationId = signal('');
   viewMode = signal<'matrix' | 'list' | 'stats'>('matrix');
   loading = signal(true);
   error = signal<string | null>(null);
@@ -143,6 +149,10 @@ export class EvaluationsComponent {
         (e) => e.id === evaluation.evaluatorId
       );
 
+      if (this.currentUser?.level !== 'admin') {
+        return evaluator?.id === this.currentUser?.id;
+      }
+
       if (!currentFilters) return true;
       if (currentFilters.search) {
         const searchLower = currentFilters.search.toLowerCase();
@@ -174,13 +184,17 @@ export class EvaluationsComponent {
     if (!f) return employees;
     const searchTerm = f.search?.toLowerCase() || '';
     return employees.filter((e) => {
+      const level =
+        this.currentUser?.level === 'admin'
+          ? true
+          : e.id === this.currentUser?.id;
       const matchesSearch = searchTerm
         ? e.name.toLowerCase().includes(searchTerm) ||
           e.email.toLowerCase().includes(searchTerm)
         : true;
       const matchesPosition = f.position ? e.position === f.position : true;
       const matchesLevel = f.level ? e.level === f.level : true;
-      return matchesSearch && matchesPosition && matchesLevel;
+      return matchesSearch && matchesPosition && matchesLevel && level;
     });
   });
   stats = computed((): EvaluationStats => {
@@ -362,28 +376,6 @@ export class EvaluationsComponent {
     { value: 'self', label: 'Diri Sendiri', icon: Star, color: 'yellow' },
   ];
 
-  async generateEvalFuationsForPeriod(): Promise<void> {
-    const employees = this.employees();
-    const period = this.selectedPeriod();
-
-    if (employees.length === 0) {
-      return;
-    }
-
-    try {
-      this.loading.set(true);
-      await this.evaluationService.generatePendingEvaluations(
-        period,
-        employees
-      );
-    } catch (error) {
-      console.error('Error generating evaluations:', error);
-      this.error.set('Failed to generate evaluations');
-    } finally {
-      this.loading.set(false);
-    }
-  }
-
   onSelectedTypeChange(value: string): void {
     this.selectedEmployee.set('');
     if (value === 'self') {
@@ -519,12 +511,13 @@ export class EvaluationsComponent {
           'CircleCheck',
           'green'
         );
+        this.snackbarService.success(`Berhasil menyimpan evaluasi`);
       }
 
       this.showEvaluationForm.set(false);
       this.currentEvaluation = null;
     } catch (error) {
-      console.error(error);
+      this.snackbarService.error(`Gagal menyimpan evaluasi`);
     }
   }
 
@@ -562,6 +555,7 @@ export class EvaluationsComponent {
           existingEval.id,
           updateData
         );
+        this.snackbarService.success(`Berhasil menyimpan evaluasi`);
       } else {
         const newEvaluation: Omit<Evaluation, 'id'> = {
           evaluatorId: evaluation.evaluatorId,
@@ -573,12 +567,13 @@ export class EvaluationsComponent {
           comments: evaluation.generalComment || '',
         };
         await this.evaluationService.addEvaluation(newEvaluation);
+        this.snackbarService.success(`Berhasil menyimpan evaluasi`);
       }
 
       this.showEvaluationForm.set(false);
       this.currentEvaluation = null;
     } catch (error) {
-      console.error('Error saving draft:', error);
+      this.snackbarService.error(`Gagal menyimpan evaluasi`);
     }
   }
 
@@ -589,13 +584,19 @@ export class EvaluationsComponent {
     this.showEvaluationDetail.set(true);
   }
 
-  async deleteEvaluation(evaluationId: string): Promise<void> {
-    if (confirm('Apakah Anda yakin ingin menghapus evaluasi ini?')) {
-      try {
-        await this.evaluationService.deleteEvaluation(evaluationId);
-      } catch (error) {
-        console.error('Error deleting evaluation:', error);
-      }
+  deleteEvaluation(evaluationId: string): void {
+    this.showDeleteModal.set(true);
+    this.selectedEvaluationId.set(evaluationId);
+  }
+
+  async confirmDelete(): Promise<void> {
+    try {
+      await this.evaluationService.deleteEvaluation(
+        this.selectedEvaluationId()
+      );
+      this.snackbarService.error(`Berhasil menghapus evaluasi`);
+    } catch (error) {
+      this.snackbarService.error(`Gagal menghapus evaluasi`);
     }
   }
 

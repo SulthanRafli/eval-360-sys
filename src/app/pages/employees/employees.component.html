@@ -352,7 +352,10 @@
   (click)="onDeleteModalClose()"
   (keydown.escape)="onDeleteModalClose()"
 >
-  <div class="relative top-0 mx-auto p-5 w-96 shadow-lg rounded-md bg-white">
+  <div
+    class="relative top-0 mx-auto p-5 w-96 shadow-lg rounded-md bg-white"
+    (click)="$event.stopPropagation()"
+  >
     <div
       class="flex items-center justify-between pb-4 border-b border-gray-400"
     >

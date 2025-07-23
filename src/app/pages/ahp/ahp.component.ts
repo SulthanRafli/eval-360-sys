@@ -25,6 +25,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { MatrixTableComponent } from '../../shared/components/matrix-tables/matrix-tables.component';
 import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { SnackbarService } from '../../shared/services/snackbar.service';
 
 @Component({
   selector: 'app-ahp',
@@ -46,6 +47,7 @@ export class AhpComponent {
   private ahpService = inject(AhpService);
   private activitiesService = inject(RecentActivitiesService);
   private authService = inject(AuthService);
+  private snackbarService = inject(SnackbarService);
 
   // Icons
   readonly Info = Info;
@@ -606,27 +608,30 @@ export class AhpComponent {
         'FileText',
         'yellow'
       );
+      this.snackbarService.success(`Berhasil menyimpan bobot AHP`);
       this.showSaveModal.set(false);
       this.saveName = '';
       this.resetComparisons();
     } catch (error) {
-      console.error('Error saving weights:', error);
+      this.snackbarService.error(`Gagal menyimpan bobot AHP`);
     }
   }
 
   async activateWeights(id: string): Promise<void> {
     try {
       await this.ahpService.activateWeights(id);
+      this.snackbarService.success(`Berhasil mengaktifkan bobot AHP`);
     } catch (error) {
-      console.error('Error activating weights:', error);
+      this.snackbarService.error(`Gagal mengaktifkan bobot AHP`);
     }
   }
 
   async deleteWeights(id: string): Promise<void> {
     try {
       await this.ahpService.deleteWeights(id);
+      this.snackbarService.success(`Berhasil menghapus bobot AHP`);
     } catch (error) {
-      console.error('Error deleting weights:', error);
+      this.snackbarService.error(`Gagal menghapus bobot AHP`);
     }
   }
 

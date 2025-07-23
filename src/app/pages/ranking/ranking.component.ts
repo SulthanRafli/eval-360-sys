@@ -14,6 +14,7 @@ import {
   Medal,
   Award,
   Star,
+  Info,
 } from 'lucide-angular';
 import { ChartOptions } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
@@ -24,6 +25,8 @@ import { AhpService } from '../../shared/services/ahp.service';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import moment from 'moment';
 import { switchMap } from 'rxjs';
+import { Router } from '@angular/router';
+import { AuthService } from '../../shared/services/auth.service';
 
 @Component({
   selector: 'app-ranking',
@@ -38,6 +41,8 @@ export class RankingComponent {
   private employeeService = inject(EmployeeService);
   private criteriaService = inject(CriteriaService);
   private ahpService = inject(AhpService);
+  private authService = inject(AuthService);
+  private router = inject(Router);
 
   // --- Icons ---
   readonly Settings = Settings;
@@ -46,12 +51,14 @@ export class RankingComponent {
   readonly Medal = Medal;
   readonly Award = Award;
   readonly Star = Star;
+  readonly Info = Info;
 
   // --- Reactive State ---
   isLoading = signal(true);
   selectedPeriod = signal(moment().format('YYYY-MM'));
   viewMode = signal<'table' | 'chart' | 'detailed'>('table');
   selectedEmployeeId = signal('');
+  currentUser = this.authService.currentUserProfile();
 
   // --- Data Signals from Services ---
   allEmployees = toSignal(this.employeeService.getEmployees(), {
@@ -257,6 +264,10 @@ export class RankingComponent {
       default:
         return Star;
     }
+  }
+
+  goToAhp() {
+    this.router.navigateByUrl('/ahp');
   }
 
   getRankClass(rank: number): string {

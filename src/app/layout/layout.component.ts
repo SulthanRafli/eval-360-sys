@@ -73,6 +73,7 @@ export class LayoutComponent {
           href: '/evaluations',
           icon: ClipboardPenLine,
         },
+        { name: 'Ranking', href: '/ranking', icon: Award },
       ];
     }
     return navigationFiltered;

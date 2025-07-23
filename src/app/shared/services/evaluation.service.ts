@@ -29,7 +29,9 @@ export class EvaluationService {
    */
   getEvaluationsByPeriod(period: string): Observable<Evaluation[]> {
     const q = query(this.evaluationsCollection, where('period', '==', period));
-    return collectionData(q) as Observable<Evaluation[]>;
+    return collectionData(q, {
+      idField: 'id',
+    }) as Observable<Evaluation[]>;
   }
 
   /**

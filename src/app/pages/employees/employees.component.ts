@@ -29,6 +29,7 @@ import {
 import { EmployeeService } from '../../shared/services/employee.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
+import { SnackbarService } from '../../shared/services/snackbar.service';
 
 @Component({
   selector: 'app-employees',
@@ -55,6 +56,7 @@ export class EmployeesComponent implements OnDestroy {
   private employeeService = inject(EmployeeService);
   private activitiesService = inject(RecentActivitiesService);
   private authService = inject(AuthService);
+  private snackbarService = inject(SnackbarService);
   private subscriptions = new Subscription();
 
   // --- STATE MANAGEMENT ---
@@ -415,8 +417,9 @@ export class EmployeesComponent implements OnDestroy {
           'Trash2',
           'red'
         );
+        this.snackbarService.success(`Berhasil menghapus karyawan`);
       } catch (error) {
-        console.error('Error deleting employee:', error);
+        this.snackbarService.error(`Gagal menghapus karyawan`);
       }
     }
     this.onDeleteModalClose();
@@ -456,6 +459,7 @@ export class EmployeesComponent implements OnDestroy {
           'UserPlus',
           'green'
         );
+        this.snackbarService.success(`Berhasil mengubah karyawan`);
       } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
         const employeeId = this.selectedEmployee()!.id;
         await this.employeeService.updateEmployee(employeeId, dataToSave);
@@ -465,9 +469,10 @@ export class EmployeesComponent implements OnDestroy {
           'SquarePen',
           'yellow'
         );
+        this.snackbarService.success(`Berhasil menyimpan karyawan`);
       }
     } catch (error) {
-      console.error('Error saving employee:', error);
+      this.snackbarService.error(`Gagal menyimpan karyawan`);
     }
     this.onFormModalClose();
   }

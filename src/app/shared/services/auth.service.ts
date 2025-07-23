@@ -33,7 +33,6 @@ export class AuthService {
         const user = JSON.parse(userJson) as Employee;
         this.currentUserProfile.set(user);
       } catch (e) {
-        console.error('Gagal mem-parsing data pengguna dari localStorage', e);
         localStorage.removeItem(this.USER_STORAGE_KEY);
       }
     }

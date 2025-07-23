@@ -18,6 +18,7 @@ import { Criteria, Question } from '../../shared/models/app.types';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
 import { AuthService } from '../../shared/services/auth.service';
+import { SnackbarService } from '../../shared/services/snackbar.service';
 
 @Component({
   selector: 'app-criteria',
@@ -41,6 +42,7 @@ export class CriteriaComponent {
   private criteriaService = inject(CriteriaService);
   private activitiesService = inject(RecentActivitiesService);
   private authService = inject(AuthService);
+  private snackbarService = inject(SnackbarService);
 
   private criteria$ = this.criteriaService.getCriteria();
   public criteria = toSignal(this.criteria$, { initialValue: [] });
@@ -154,6 +156,7 @@ export class CriteriaComponent {
           'SquarePen',
           'yellow'
         );
+        this.snackbarService.success(`Berhasil mengubah kriteria`);
       } else {
         const newCriteria: Omit<Criteria, 'id'> = {
           ...this.criteriaForm(),
@@ -166,10 +169,11 @@ export class CriteriaComponent {
           'PlusCircle',
           'green'
         );
+        this.snackbarService.success(`Berhasil menyimpan kriteria`);
       }
       this.closeCriteriaForm();
     } catch (error) {
-      console.error('Error saving criteria:', error);
+      this.snackbarService.error(`Gagal menyimpan kriteria`);
     }
   }
 
@@ -220,6 +224,7 @@ export class CriteriaComponent {
             questionToMove,
             this.subcriteriaForm().criteriaId
           );
+          this.snackbarService.success(`Berhasil mengubah pertanyaan`);
         } else {
           const updatedQuestion: Question = {
             id: this.editingQuestion()?.id || '',
@@ -231,6 +236,7 @@ export class CriteriaComponent {
             this.subcriteriaForm().criteriaId,
             updatedQuestion
           );
+          this.snackbarService.success(`Berhasil mengubah pertanyaan`);
         }
       } else {
         const newQuestion: Question = {
@@ -243,10 +249,11 @@ export class CriteriaComponent {
           this.subcriteriaForm().criteriaId,
           newQuestion
         );
+        this.snackbarService.success(`Berhasil menyimpan pertanyaan`);
       }
       this.closeQuestionForm();
     } catch (error) {
-      console.error('Error saving subcriteria:', error);
+      this.snackbarService.error(`Gagal menyimpan pertanyaan`);
     }
   }
 
@@ -271,13 +278,14 @@ export class CriteriaComponent {
           'Trash2',
           'red'
         );
+        this.snackbarService.success(`Berhasil menghapus kriteria`);
       } else {
         const sub = this.itemToDelete()?.item as Question;
         await this.criteriaService.deleteQuestion(sub.criteriaId, sub.id);
       }
       this.closeDeleteModal();
     } catch (error) {
-      console.error('Error deleting item:', error);
+      this.snackbarService.error(`Gagal menghapus kriteria`);
     }
   }
 
