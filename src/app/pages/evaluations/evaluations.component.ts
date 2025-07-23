@@ -594,10 +594,13 @@ export class EvaluationsComponent {
       await this.evaluationService.deleteEvaluation(
         this.selectedEvaluationId()
       );
+
       this.snackbarService.error(`Berhasil menghapus evaluasi`);
     } catch (error) {
       this.snackbarService.error(`Gagal menghapus evaluasi`);
     }
+    this.showDeleteModal.set(false);
+    this.selectedEvaluationId.set('');
   }
 
   getEmployeeName(id: string): string {
