@@ -459,7 +459,7 @@ export class EmployeesComponent implements OnDestroy {
           'UserPlus',
           'green'
         );
-        this.snackbarService.success(`Berhasil mengubah karyawan`);
+        this.snackbarService.success(`Berhasil menyimpan karyawan`);
       } else if (this.formMode() === 'edit' && this.selectedEmployee()) {
         const employeeId = this.selectedEmployee()!.id;
         await this.employeeService.updateEmployee(employeeId, dataToSave);
@@ -469,7 +469,7 @@ export class EmployeesComponent implements OnDestroy {
           'SquarePen',
           'yellow'
         );
-        this.snackbarService.success(`Berhasil menyimpan karyawan`);
+        this.snackbarService.success(`Berhasil mengubah karyawan`);
       }
     } catch (error) {
       this.snackbarService.error(`Gagal menyimpan karyawan`);

@@ -88,7 +88,7 @@
         <h3 class="text-lg font-medium text-gray-900 mb-4">
           Aktivitas Terbaru
         </h3>
-        <div class="flow-root max-h-66 overflow-y-auto">
+        <div class="flow-root min-h-66 max-h-66 overflow-y-auto">
           <div *ngIf="recentActivities().length > 0; else emptyState">
             <ul class="-mb-8">
               <li
