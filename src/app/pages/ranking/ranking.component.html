@@ -321,7 +321,9 @@
         <br />
         <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h4 class="font-bold text-gray-900">Hasil Penilaian</h4>
+            <h4 class="font-bold text-gray-900">
+              Hasil Penilaian Evaluasi 360°
+            </h4>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full">
@@ -342,7 +344,7 @@
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr
-                  *ngFor="let score of employeeScores()"
+                  *ngFor="let score of employeeScoresSorted()"
                   class="hover:bg-gray-50"
                 >
                   <td
@@ -364,7 +366,9 @@
         <br />
         <div class="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-            <h4 class="font-bold text-gray-900">Hasil Penilaian Prioritas</h4>
+            <h4 class="font-bold text-gray-900">
+              Hasil Penilaian Bobot Prioritas
+            </h4>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full">
@@ -382,7 +386,7 @@
                     {{ criteria.code }}
                   </th>
                   <th
-                    class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase border-r border-gray-200"
+                    class="px-3 py-2 text-center text-xs font-bold text-gray-500 uppercase border-r border-gray-200"
                   >
                     Total
                   </th>
@@ -408,7 +412,7 @@
                     }}
                   </td>
                   <td
-                    class="px-3 py-2 text-center text-sm text-gray-900 border-r border-gray-200"
+                    class="px-3 py-2 text-center text-sm font-bold text-gray-900 border-r border-gray-200"
                   >
                     {{ score.totalScore | number : "1.0-6" }}
                   </td>

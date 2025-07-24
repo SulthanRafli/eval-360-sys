@@ -402,7 +402,11 @@
           [disabled]="selectedType() && selectedType() === 'self'"
         >
           <option value="">Pilih karyawan</option>
-          <option *ngFor="let emp of evaluatableEmployees()" [value]="emp.id">
+          <option
+            *ngFor="let emp of evaluatableEmployees()"
+            [value]="emp.id"
+            [disabled]="emp.disabled"
+          >
             {{ emp.name }}
           </option>
         </select>

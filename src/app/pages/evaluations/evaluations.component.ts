@@ -2,6 +2,7 @@ import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
+  Employee,
   Evaluation,
   EvaluationFormData,
   EvaluationResponse,
@@ -278,20 +279,38 @@ export class EvaluationsComponent {
 
     if (!user || !type) return [];
 
+    let employeeFilter: Employee[] = [];
     switch (type) {
       case 'supervisor':
-        return user.supervisor
+        employeeFilter = user.supervisor
           ? all.filter((e) => e.id === user.supervisor)
           : [];
+        break;
       case 'peer':
-        return all.filter((e) => user.teammates.includes(e.id));
+        employeeFilter = all.filter((e) => user.teammates.includes(e.id));
+        break;
       case 'subordinate':
-        return all.filter((e) => user.subordinates.includes(e.id));
+        employeeFilter = all.filter((e) => user.subordinates.includes(e.id));
+        break;
       case 'self':
-        return [user];
+        employeeFilter = [user];
+        break;
       default:
-        return [];
+        employeeFilter = [];
+        break;
     }
+
+    employeeFilter = employeeFilter.filter((val) => {
+      val['disabled'] = this.evaluations().find(
+        (e) =>
+          e.employeeId === val?.id && e.evaluatorId === this.currentUser?.id
+      )
+        ? true
+        : false;
+      return val;
+    });
+
+    return employeeFilter;
   });
   getAnsweredQuestionsCount = computed(() => {
     const currentEval = this.currentEvaluation();
@@ -378,7 +397,14 @@ export class EvaluationsComponent {
 
   onSelectedTypeChange(value: string): void {
     this.selectedEmployee.set('');
-    if (value === 'self') {
+    if (
+      value === 'self' &&
+      !this.evaluations().find(
+        (e) =>
+          e.employeeId === this.currentUser?.id &&
+          e.evaluatorId === this.currentUser?.id
+      )
+    ) {
       this.selectedEmployee.set(this.currentUser?.id || '');
     }
   }
@@ -857,18 +883,12 @@ export class EvaluationsComponent {
     if (totalRequired === 0) return 0;
 
     let relevantEvals = this.evaluations().filter((e) => {
-      if (type === 'supervisor') {
-        return e.type === 'subordinate';
-      } else if (type === 'subordinate') {
-        return e.type === 'supervisor';
-      } else {
-        return e.type === type;
-      }
+      return e.type === type;
     });
 
     if (this.currentUser?.id && this.currentUser?.level !== 'admin') {
       relevantEvals = relevantEvals.filter((e) => {
-        return e.employeeId == this.currentUser?.id;
+        return e.evaluatorId == this.currentUser?.id;
       });
     }
 

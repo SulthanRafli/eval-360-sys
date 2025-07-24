@@ -13,6 +13,7 @@ export interface Employee {
   status?: string;
   teammates: string[];
   subordinates: string[];
+  disabled?: boolean;
 }
 
 export interface Question {

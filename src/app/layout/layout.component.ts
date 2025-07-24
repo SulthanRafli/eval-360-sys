@@ -57,9 +57,9 @@ export class LayoutComponent {
         href: '/evaluations',
         icon: ClipboardPenLine,
       },
-      { name: 'Ranking', href: '/ranking', icon: Award },
-      { name: 'AHP Setup', href: '/ahp', icon: Calculator },
-      { name: 'Criteria Setup', href: '/criteria', icon: Settings },
+      { name: 'Peringkat', href: '/ranking', icon: Award },
+      { name: 'Bobot AHP', href: '/ahp', icon: Calculator },
+      { name: 'Kriteria', href: '/criteria', icon: Settings },
     ];
     if (user?.level !== 'admin') {
       navigationFiltered = [
@@ -73,7 +73,7 @@ export class LayoutComponent {
           href: '/evaluations',
           icon: ClipboardPenLine,
         },
-        { name: 'Ranking', href: '/ranking', icon: Award },
+        { name: 'Peringkat', href: '/ranking', icon: Award },
       ];
     }
     return navigationFiltered;

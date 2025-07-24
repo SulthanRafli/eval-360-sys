@@ -86,6 +86,97 @@ export class RankingComponent {
   activeWeights = computed(
     () => this.savedWeights().find((w) => w.isActive) || null
   );
+  employeeScoresSorted = computed(() => {
+    const employees = this.allEmployees();
+    const evals = this.evaluations();
+    const criteria = this.allCriteria();
+    const weights = this.activeWeights();
+
+    if (employees.length === 0 || evals.length === 0 || criteria.length === 0) {
+      return [];
+    }
+
+    const evaluationData: {
+      [employeeId: string]: { [criteriaId: string]: number[] };
+    } = {};
+    const evaluationCounts: { [employeeId: string]: number } = {};
+
+    evals
+      .filter((e) => e.status === 'completed')
+      .forEach((e) => {
+        if (!evaluationData[e.employeeId]) {
+          evaluationData[e.employeeId] = {};
+          evaluationCounts[e.employeeId] = 0;
+        }
+        evaluationCounts[e.employeeId]++;
+        e.responses.forEach((r) => {
+          if (!evaluationData[e.employeeId][r.criteriaId]) {
+            evaluationData[e.employeeId][r.criteriaId] = [];
+          }
+          evaluationData[e.employeeId][r.criteriaId].push(r.score);
+        });
+      });
+
+    const averagedScores: {
+      [employeeId: string]: { [criteriaId: string]: number };
+    } = {};
+    for (const empId in evaluationData) {
+      averagedScores[empId] = {};
+      for (const cId in evaluationData[empId]) {
+        const scores = evaluationData[empId][cId];
+        averagedScores[empId][cId] =
+          scores.reduce((a, b) => a + b, 0) / scores.length;
+      }
+    }
+
+    const criteriaSubcriteriaMapping: Record<string, string> = {};
+    criteria.forEach((c) => {
+      criteriaSubcriteriaMapping[c.id] = c.code;
+    });
+
+    let ahpScores: EmployeeAHPScore[];
+    if (weights) {
+      ahpScores = this.calculateMultipleEmployeeScores(
+        averagedScores,
+        weights.weights,
+        weights.subcriteriaWeights ?? {},
+        criteriaSubcriteriaMapping
+      );
+    } else {
+      const equalWeights: { [cId: string]: number } = {};
+      const equalSubWeights: { [cId: string]: { [sId: string]: number } } = {};
+      criteria.forEach((c) => {
+        equalWeights[c.id] = 1 / criteria.length;
+        equalSubWeights[c.id] = {};
+        c.questions.forEach((q) => {
+          equalSubWeights[c.id][q.id] = 1 / c.questions.length;
+        });
+      });
+      ahpScores = this.calculateMultipleEmployeeScores(
+        averagedScores,
+        equalWeights,
+        equalSubWeights,
+        criteriaSubcriteriaMapping
+      );
+    }
+
+    const detailedScores = ahpScores.map((score, index) => {
+      return {
+        ...score,
+        employee: employees.find((emp) => emp.id === score.employeeId)!,
+        rank: index + 1,
+        evaluationCount: evaluationCounts[score.employeeId] || 0,
+      };
+    });
+    return detailedScores.sort((a, b) => {
+      const nameA = a.employee.name.toLowerCase();
+      const nameB = b.employee.name.toLowerCase();
+
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    });
+  });
   employeeScores = computed(() => {
     const employees = this.allEmployees();
     const evals = this.evaluations();
