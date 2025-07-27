@@ -610,6 +610,13 @@ export class EvaluationsComponent {
     this.showEvaluationDetail.set(true);
   }
 
+  viewEvaluationDetailById(evaluationId: string): void {
+    const evaluation =
+      this.evaluations().find((e) => e.id === evaluationId) || null;
+    this.selectedEvaluationDetail.set(evaluation);
+    this.showEvaluationDetail.set(true);
+  }
+
   deleteEvaluation(evaluationId: string): void {
     this.showDeleteModal.set(true);
     this.selectedEvaluationId.set(evaluationId);
@@ -706,10 +713,19 @@ export class EvaluationsComponent {
       return 0;
     }
 
-    const totalRequired =
-      1 +
-      (employee.teammates?.length || 0) +
-      (employee.subordinates?.length || 0);
+    let totalRequired = 1;
+
+    if (employee.supervisor) {
+      totalRequired++;
+    }
+
+    if (employee.teammates?.length) {
+      totalRequired += employee.teammates?.length;
+    }
+
+    if (employee.subordinates?.length) {
+      totalRequired += employee.subordinates?.length;
+    }
 
     let completedCount = 0;
 
@@ -746,17 +762,38 @@ export class EvaluationsComponent {
         .filter(
           (e) =>
             e.employeeId === employeeId &&
-            e.type === 'subordinate' &&
+            e.type === 'supervisor' &&
             e.status === 'completed'
         )
         .map((e) => e.evaluatorId)
     );
+
+    if (employeeId === '0gpoWVJXNEkvUAe6eQed') {
+      console.log(completedSubordinateEvaluatorIds);
+      console.log(employee.subordinates);
+      console.log(completedCount);
+    }
 
     (employee.subordinates || []).forEach((subordinateId) => {
       if (completedSubordinateEvaluatorIds.has(subordinateId)) {
         completedCount++;
       }
     });
+
+    const completedSupervisorIds = new Set(
+      evaluationList
+        .filter(
+          (e) =>
+            e.employeeId === employeeId &&
+            e.type === 'subordinate' &&
+            e.status === 'completed'
+        )
+        .map((e) => e.evaluatorId)
+    );
+
+    if (completedSupervisorIds.has(employee.supervisor || '')) {
+      completedCount++;
+    }
 
     return totalRequired > 0 ? (completedCount / totalRequired) * 100 : 100;
   }
@@ -797,6 +834,9 @@ export class EvaluationsComponent {
       (e) => e.status === 'completed'
     ).length;
 
+    if (employeeId === 'sCrZW1TFBM2Iszr9KYXd' && type === 'subordinate') {
+      console.log(totalRequired, completedCount);
+    }
     if (completedCount === totalRequired) return 'completed';
     const hasStarted = relevantEvals.some(
       (e) => e.status === 'pending' || e.status === 'completed'
