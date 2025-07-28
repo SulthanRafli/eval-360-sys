@@ -26,6 +26,7 @@ import { MatrixTableComponent } from '../../shared/components/matrix-tables/matr
 import { RecentActivitiesService } from '../../shared/services/recent-activities.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { SnackbarService } from '../../shared/services/snackbar.service';
+import { AHPCalculationUtils } from '../../shared/utils/ahpCalculation';
 
 @Component({
   selector: 'app-ahp',
@@ -207,7 +208,6 @@ export class AhpComponent {
       color: 'bg-purple-600',
     },
   ];
-  readonly randomIndex = [0, 0, 0.52, 0.89, 1.12, 1.24, 1.32, 1.41, 1.45, 1.49];
   readonly steps = [
     {
       number: 1,
@@ -273,259 +273,37 @@ export class AhpComponent {
     return date;
   }
 
-  // --- Matrix Operations ---
-  createMatrix(comparisons: AHPComparison[], criteriaList: any[]): number[][] {
-    const n = criteriaList.length;
-    const matrix = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(1));
-
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        if (i !== j) {
-          const comparison = comparisons.find(
-            (c) =>
-              (c.criteriaA === criteriaList[i].id &&
-                c.criteriaB === criteriaList[j].id) ||
-              (c.criteriaA === criteriaList[j].id &&
-                c.criteriaB === criteriaList[i].id)
-          );
-          if (comparison) {
-            matrix[i][j] =
-              comparison.criteriaA === criteriaList[i].id
-                ? comparison.value
-                : 1 / comparison.value;
-          }
-        }
-      }
-    }
-    return matrix;
-  }
-
-  createSubcriteriaMatrix(
-    comparisons: SubcriteriaComparison[],
-    criteriaId: string
-  ): number[][] {
-    const criteriaSubcriteria = this.subcriteria().filter(
-      (s) => s.criteriaId === criteriaId
-    );
-    const n = criteriaSubcriteria.length;
-    if (n <= 1) return [];
-
-    const matrix = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(1));
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < n; j++) {
-        if (i !== j) {
-          const comparison = comparisons.find(
-            (c) =>
-              c.criteriaId === criteriaId &&
-              ((c.subcriteriaA === criteriaSubcriteria[i].id &&
-                c.subcriteriaB === criteriaSubcriteria[j].id) ||
-                (c.subcriteriaA === criteriaSubcriteria[j].id &&
-                  c.subcriteriaB === criteriaSubcriteria[i].id))
-          );
-          if (comparison) {
-            matrix[i][j] =
-              comparison.subcriteriaA === criteriaSubcriteria[i].id
-                ? comparison.value
-                : 1 / comparison.value;
-          }
-        }
-      }
-    }
-    return matrix;
-  }
-
-  calculateEigenVector(matrix: number[][]): {
-    weightsMatrix: number[][];
-    weights: number[];
-    columnSums: number[];
-    rowSums: number[];
-  } {
-    const n = matrix.length;
-    if (n === 0)
-      return { weightsMatrix: [], weights: [], columnSums: [], rowSums: [] };
-
-    const m = matrix[0].length;
-    if (m === 0)
-      return { weightsMatrix: [], weights: [], columnSums: [], rowSums: [] };
-
-    const columnSums = new Array(m).fill(0);
-    for (let i = 0; i < n; i++) {
-      for (let j = 0; j < m; j++) {
-        columnSums[j] += matrix[i][j];
-      }
-    }
-
-    const rowSums: number[] = [];
-    const weightsMatrix = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(1));
-    const weights = matrix.map((row, i) => {
-      const rowSum = row.reduce((sum, val, index) => {
-        const wi = val / columnSums[index];
-        weightsMatrix[i][index] = wi;
-        return sum + wi;
-      }, 0);
-      rowSums.push(rowSum);
-      return rowSum / n;
-    });
-
-    return {
-      weightsMatrix,
-      weights,
-      columnSums,
-      rowSums,
-    };
-  }
-
-  calculateConsistencyRatio(
-    matrix: number[][],
-    weights: number[]
-  ): {
-    matrixRow: number[][];
-    sumMatrixRow: number[];
-    priorityRatios: number[];
-    lambdaMax: number;
-    ci: number;
-    cr: number;
-  } {
-    const n = matrix.length;
-    if (n <= 2)
-      return {
-        matrixRow: [],
-        sumMatrixRow: [],
-        priorityRatios: [],
-        lambdaMax: 0,
-        ci: 0,
-        cr: 0,
-      };
-
-    const matrixRow = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(1));
-    const sumMatrixRow: number[] = [];
-    const priorityRatios: number[] = [];
-
-    const weightedSum = matrix.map((row, i) => {
-      const rowSum = row.reduce((sum, val, j) => {
-        matrixRow[i][j] = val * weights[j];
-        return sum + val * weights[j];
-      }, 0);
-      sumMatrixRow.push(rowSum);
-      return rowSum;
-    });
-
-    const lambdaMax =
-      weightedSum.reduce((sum, val, i) => {
-        priorityRatios.push(val / weights[i]);
-        return sum + val / weights[i];
-      }, 0) / n;
-
-    const ci = (lambdaMax - n) / (n - 1);
-    const ri = this.randomIndex[n - 1] || 1.49;
-    const cr = ci / ri;
-
-    return {
-      matrixRow,
-      sumMatrixRow,
-      priorityRatios,
-      lambdaMax,
-      cr,
-      ci,
-    };
-  }
-
+  // --- Updated methods using AHPCalculationUtils ---
   calculateWeights(): void {
-    const matrix = this.createMatrix(this.comparisons(), this.criteria());
-    const eigenVector = this.calculateEigenVector(matrix);
-    const result = this.calculateConsistencyRatio(matrix, eigenVector.weights);
+    // Calculate main criteria weights using utils
+    const criteriaResults = AHPCalculationUtils.calculateAHPResults(
+      this.comparisons(),
+      this.criteria()
+    );
 
-    this.results.set({
-      pairwiseMatrix: matrix,
-      pairwiseSumMatrix: eigenVector.columnSums,
-      weightsMatrix: eigenVector.weightsMatrix,
-      sumWeightsMatrix: eigenVector.rowSums,
-      weights: eigenVector.weights,
-      priorityRatios: result.priorityRatios,
-      everyRowMatrix: result.matrixRow,
-      sumEveryRowMatrix: result.sumMatrixRow,
-      lambdaMax: result.lambdaMax,
-      cr: result.cr,
-      ci: result.ci,
-      statusCr: result.cr <= 0.1 ? 'Baik' : 'Buruk',
-    });
+    // Set criteria results
+    this.results.set(criteriaResults);
 
+    // Extract weights object
     const newWeights: { [key: string]: number } = {};
     this.criteria().forEach((criterion, index) => {
-      newWeights[criterion.id] = eigenVector.weights[index] || 0;
+      newWeights[criterion.id] = criteriaResults.weights[index] || 0;
     });
-
     this.weights.set(newWeights);
-    this.consistencyRatio.set(result.cr);
+    this.consistencyRatio.set(criteriaResults.cr);
 
-    const newSubcriteriaWeights: {
-      [criteriaId: string]: { [subcriteriaId: string]: number };
-    } = {};
-    const newSubcriteriaConsistencyRatios: { [criteriaId: string]: number } =
-      {};
-    const newResultsCriteria: AhpResults[] = [];
+    // Calculate subcriteria weights using utils
+    const subcriteriaResults = AHPCalculationUtils.calculateSubcriteriaWeights(
+      this.subcriteriaComparisons(),
+      this.criteria(),
+      this.subcriteria()
+    );
 
-    this.criteria().forEach((criterion) => {
-      const criteriaSubcriteria = this.subcriteria().filter(
-        (s) => s.criteriaId === criterion.id
-      );
-
-      if (criteriaSubcriteria.length > 1) {
-        const subMatrix = this.createSubcriteriaMatrix(
-          this.subcriteriaComparisons(),
-          criterion.id
-        );
-        const subEigenVector = this.calculateEigenVector(subMatrix);
-        const resultSub = this.calculateConsistencyRatio(
-          subMatrix,
-          subEigenVector.weights
-        );
-        const maxValue = Math.max(...subEigenVector.weights);
-        const weightSubcriteria = subEigenVector.weights.map(
-          (val) => val / maxValue
-        );
-
-        newResultsCriteria.push({
-          pairwiseMatrix: subMatrix,
-          pairwiseSumMatrix: subEigenVector.columnSums,
-          weightsMatrix: subEigenVector.weightsMatrix,
-          sumWeightsMatrix: subEigenVector.rowSums,
-          weights: subEigenVector.weights,
-          weightSubcriteria: weightSubcriteria,
-          priorityRatios: resultSub.priorityRatios,
-          everyRowMatrix: resultSub.matrixRow,
-          sumEveryRowMatrix: resultSub.sumMatrixRow,
-          lambdaMax: resultSub.lambdaMax,
-          cr: resultSub.cr,
-          ci: resultSub.ci,
-          statusCr: resultSub.cr <= 0.1 ? 'Baik' : 'Buruk',
-        });
-
-        newSubcriteriaWeights[criterion.id] = {};
-        criteriaSubcriteria.forEach((sub, index) => {
-          newSubcriteriaWeights[criterion.id][sub.id] =
-            weightSubcriteria[index] || 0;
-        });
-
-        newSubcriteriaConsistencyRatios[criterion.id] = resultSub.cr;
-      } else if (criteriaSubcriteria.length === 1) {
-        newSubcriteriaWeights[criterion.id] = {};
-        newSubcriteriaWeights[criterion.id][criteriaSubcriteria[0].id] = 1.0;
-        newSubcriteriaConsistencyRatios[criterion.id] = 0;
-      }
-    });
-
-    this.resultsCriteria.set(newResultsCriteria);
-    this.subcriteriaWeights.set(newSubcriteriaWeights);
-    this.subcriteriaConsistencyRatios.set(newSubcriteriaConsistencyRatios);
+    this.subcriteriaWeights.set(subcriteriaResults.subcriteriaWeights);
+    this.subcriteriaConsistencyRatios.set(
+      subcriteriaResults.subcriteriaConsistencyRatios
+    );
+    this.resultsCriteria.set(subcriteriaResults.resultsCriteria);
   }
 
   handleComparisonChange(
@@ -781,5 +559,15 @@ export class AhpComponent {
     const currentMatrices = [...this.showMatricesSubcriteria()];
     currentMatrices[index] = !currentMatrices[index];
     this.showMatricesSubcriteria.set(currentMatrices);
+  }
+
+  // Utility method to check consistency using AHPCalculationUtils
+  isConsistencyAcceptable(cr: number): boolean {
+    return AHPCalculationUtils.isConsistencyAcceptable(cr);
+  }
+
+  // Utility method to get consistency status using AHPCalculationUtils
+  getConsistencyStatus(cr: number): string {
+    return AHPCalculationUtils.getConsistencyStatus(cr);
   }
 }
