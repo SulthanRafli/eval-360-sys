@@ -131,13 +131,7 @@
               rows="4"
             ></textarea>
           </div>
-          <div class="flex justify-between pt-6 border-t border-gray-300">
-            <button
-              (click)="saveDraft()"
-              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
-            >
-              Simpan Draft
-            </button>
+          <div class="flex justify-end pt-6 border-t border-gray-300">
             <div class="flex space-x-3">
               <button
                 (click)="showEvaluationForm.set(false)"
@@ -709,20 +703,8 @@
                   ></lucide-angular>
                 </button>
                 <button
-                  *ngIf="evaluation.status !== 'completed'"
-                  class="cursor-pointer"
-                  (click)="
-                    startEvaluation(evaluation.employeeId, evaluation.type)
-                  "
-                  title="Edit"
-                >
-                  <lucide-angular
-                    [img]="SquarePen"
-                    class="w-5 h-5 text-yellow-600"
-                  ></lucide-angular>
-                </button>
-                <button
                   (click)="deleteEvaluation(evaluation.id)"
+                  *ngIf="currentUser?.id === evaluation.evaluatorId"
                   title="Hapus"
                   class="cursor-pointer"
                 >
