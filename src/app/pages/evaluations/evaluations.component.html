@@ -326,17 +326,6 @@
           >
             Daftar
           </button>
-          <button
-            *ngIf="currentUser?.level !== 'admin'"
-            (click)="viewMode.set('stats')"
-            [ngClass]="{
-              'bg-blue-50 text-blue-700': viewMode() === 'stats',
-              'bg-white text-gray-700': viewMode() !== 'stats'
-            }"
-            class="px-4 py-2 text-sm font-medium border border-gray-300 rounded-r-md border-l-0 cursor-pointer"
-          >
-            Statistik
-          </button>
         </div>
       </div>
     </div>
