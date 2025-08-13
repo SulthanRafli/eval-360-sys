@@ -252,6 +252,8 @@ export class AhpComponent {
       name: 'Sangat Kurang',
     },
   ];
+  readonly valueCriteria = [5, 6, 7, 4, 3, 4, 2, 2, 1, 0.5];
+  readonly valueSubCriteria = [3, 5, 7, 9, 3, 5, 7, 3, 5, 3];
 
   subcriteria = computed(() => {
     const initialSubcriteria: Subcriteria[] = [];
@@ -352,6 +354,48 @@ export class AhpComponent {
     });
 
     this.subcriteriaComparisons.set(currentSubComparisons);
+  }
+
+  defaultComparisons(): void {
+    this.currentStep.set(1);
+
+    const crit = this.criteria();
+    const numCrit = crit.length;
+
+    const seededComparisons: AHPComparison[] = [];
+    let idx = 0;
+    for (let i = 0; i < numCrit; i++) {
+      for (let j = i + 1; j < numCrit; j++) {
+        const value = this.valueCriteria[idx] ?? 1;
+        seededComparisons.push({
+          criteriaA: crit[i].id,
+          criteriaB: crit[j].id,
+          value,
+        });
+        idx++;
+      }
+    }
+    this.comparisons.set(seededComparisons);
+
+    const seededSubComparisons: SubcriteriaComparison[] = [];
+    for (const criterion of crit) {
+      const subs = this.getSubcriteriaForCriteria(criterion.id);
+      const m = subs.length;
+      let sIdx = 0;
+      for (let a = 0; a < m; a++) {
+        for (let b = a + 1; b < m; b++) {
+          const value = this.valueSubCriteria[sIdx] ?? 1;
+          seededSubComparisons.push({
+            criteriaId: criterion.id,
+            subcriteriaA: subs[a].id,
+            subcriteriaB: subs[b].id,
+            value,
+          });
+          sIdx++;
+        }
+      }
+    }
+    this.subcriteriaComparisons.set(seededSubComparisons);
   }
 
   resetComparisons(): void {
