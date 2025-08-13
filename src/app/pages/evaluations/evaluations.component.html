@@ -319,13 +319,15 @@
             (click)="viewMode.set('list')"
             [ngClass]="{
               'bg-blue-50 text-blue-700': viewMode() === 'list',
-              'bg-white text-gray-700': viewMode() !== 'list'
+              'bg-white text-gray-700': viewMode() !== 'list',
+              'rounded-r-md': currentUser?.level === 'admin'
             }"
             class="px-4 py-2 text-sm font-medium border border-gray-300 border-l-0 cursor-pointer"
           >
             Daftar
           </button>
           <button
+            *ngIf="currentUser?.level !== 'admin'"
             (click)="viewMode.set('stats')"
             [ngClass]="{
               'bg-blue-50 text-blue-700': viewMode() === 'stats',
